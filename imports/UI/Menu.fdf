@@ -1,0 +1,239 @@
+
+Frame "BACKDROP" "MenuBackdrop" {
+    Width 0.8,
+    Height 0.3575,
+
+    //BackdropTileBackground,
+    BackdropBackground  "UI\Widgets\BattleNet\bnet-dialoguebox-background.blp",
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    //BackdropCornerSize  0.032,
+    BackdropBackgroundSize  0.128,
+    //BackdropBackgroundInsets 0.01 0.01 0.01 0.01,
+    //BackdropEdgeFile  "UI\Widgets\EscMenu\Orc\orc-options-menu-border.blp",
+
+    BackdropCornerSize          0.008,
+    BackdropBackgroundInsets    0.002 0.002 0.002 0.002,
+    BackdropEdgeFile  "UI\Widgets\ToolTips\Human\human-tooltip-border.blp",
+}
+
+Frame "BACKDROP" "MenuBackdropBlack" {
+    Width 0.2,
+    Height 0.345,
+
+    BackdropBackground "UI\Widgets\EscMenu\Human\blank-background.blp"
+    //BackdropBackground "UI\Widgets\EscMenu\Human\blank-background.blp",
+    //BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    //BackdropCornerSize  0.,
+    //BackdropBackgroundSize  0.128,
+    //BackdropEdgeFile "UI\Widgets\EscMenu\Human\blank-background.blp",
+}
+
+Frame "TEXT" "MenuItemTreeTitleText" {
+    DecorateFileNames, 
+    FontColor 0.99 0.827 0.0705 1.0,
+    FrameFont "MasterFont", 0.013, "",
+	FontJustificationH JUSTIFYCENTER,
+	FontJustificationV JUSTIFYMIDDLE,
+    Text "Race"
+}
+
+Frame "TEXT" "CategoryType" {
+    DecorateFileNames, 
+    FontColor 1.0 1.0 1.0 1.0,
+    FrameFont "MasterFont", 0.01, "",
+	FontJustificationH JUSTIFYCENTER,
+	FontJustificationV JUSTIFYMIDDLE,
+    Text "Type"
+}
+
+Frame "TEXT" "MessageFrame" {
+    DecorateFileNames, 
+    FontColor 1.0 1.0 1.0 1.0,
+    FrameFont "MasterFont", 0.014, "",
+	FontJustificationH JUSTIFYCENTER,
+	FontJustificationV JUSTIFYMIDDLE,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+    Text ""
+}
+
+Frame "BACKDROP" "SliderAmountFrame" {
+    Width 0.02,
+    Height 0.02,
+
+    BackdropBackground  "UI\Widgets\EscMenu\Human\blank-background.blp",
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize          0.008,
+    BackdropBackgroundInsets    0.002 0.002 0.002 0.002,
+    BackdropEdgeFile  "UI\Widgets\ToolTips\Human\human-tooltip-border.blp",
+
+    Frame "TEXT" "SliderAmountText" {
+        DecorateFileNames,
+        FontColor 1.0 1.0 1.0 1.0,
+        FrameFont "MasterFont", 0.01, "",
+        FontJustificationH JUSTIFYCENTER,
+        FontJustificationV JUSTIFYMIDDLE,
+        FontJustificationOffset 0.02 0.0,
+        Text "0",
+    }
+}
+
+Frame "BACKDROP" "GenericFrame" {
+    Width 0.085,
+    Height 0.02,
+
+    BackdropBackground  "UI\Widgets\EscMenu\Human\blank-background.blp",
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize          0.008,
+    BackdropBackgroundInsets    0.002 0.002 0.002 0.002,
+    BackdropEdgeFile  "UI\Widgets\ToolTips\Human\human-tooltip-border.blp",
+
+    Frame "BACKDROP" "GenericIconBorderless" {
+        Width 0.014,
+        Height 0.014,
+        SetPoint BOTTOMLEFT, "GenericFrame", BOTTOMLEFT, 0.003, 0.003,
+        BackdropBackground  "UI\Feedback\Resources\ResourceManaStone.blp",
+        BackdropBlendAll,
+    }
+
+    Frame "TEXT" "GenericValueText" {
+        DecorateFileNames,
+        SetPoint LEFT, "GenericFrame", LEFT, 0.02, -0.001,
+        SetPoint RIGHT, "GenericFrame", RIGHT, 0., 0.,
+        FontColor 1.0 1.0 1.0 1.0,
+        FrameFont "MasterFont", 0.009, "",
+        //FontJustificationH JUSTIFYCENTER,
+        //FontJustificationV JUSTIFYMIDDLE,
+        //FontJustificationOffset 0.02 0.0,
+        Text "0",
+    }
+
+}
+
+Frame "BUTTON" "MenuItemButton" {
+    Height 0.03,
+    Width 0.03,
+    ControlStyle "AUTOTRACK|HIGHLIGHTONMOUSEOVER",
+
+    ControlBackdrop "MenuItemButtonBackdrop",
+    Frame "BACKDROP" "MenuItemButtonBackdrop" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlPushedBackdrop "MenuItemButtonPushedBackdrop",
+    Frame "BACKDROP" "MenuItemButtonPushedBackdrop" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlDisabledBackdrop "MenuItemButtonDisabledBackdrop",
+    Frame "BACKDROP" "MenuItemButtonDisabledBackdrop" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlMouseOverHighlight "MenuItemButtonMouseOverHighlight",
+    Frame "HIGHLIGHT" "MenuItemButtonMouseOverHighlight" {
+        HighlightType "FILETEXTURE",
+        HighlightAlphaFile "UI\Widgets\Console\Human\CommandButton\human-activebutton.blp",    
+        HighlightAlphaMode "ADD",
+    }
+}
+
+Frame "BUTTON" "MenuItemButtonImageSwap" {
+    Height 0.03,
+    Width 0.03,
+    ControlStyle "AUTOTRACK|HIGHLIGHTONMOUSEOVER",
+
+    ControlBackdrop "MenuItemButtonBackdropImageSwap",
+    Frame "BACKDROP" "MenuItemButtonBackdropImageSwap" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlPushedBackdrop "MenuItemButtonPushedBackdropImageSwap",
+    Frame "BACKDROP" "MenuItemButtonPushedBackdropImageSwap" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlDisabledBackdrop "MenuItemButtonDisabledBackdropImageSwap",
+    Frame "BACKDROP" "MenuItemButtonDisabledBackdropImageSwap" {
+        BackdropBackground  "ReplaceableTextures\CommandButtons\BTN3M1.blp",
+        BackdropBlendAll,
+    }
+
+    ControlMouseOverHighlight "MenuItemButtonMouseOverHighlightImageSwap",
+    Frame "HIGHLIGHT" "MenuItemButtonMouseOverHighlightImageSwap" {
+        HighlightType "FILETEXTURE",
+        HighlightAlphaFile "UI\Widgets\EscMenu\Human\blank-background.blp",
+        HighlightAlphaMode "ADD",
+        Frame "BACKDROP" "MenuItemButtonHoverBackDrop" {
+            SetAllPoints,
+        }
+    }
+}
+
+Frame "GLUETEXTBUTTON" "ExitMenuButton" {
+    Height 0.02,
+    Width 0.02,
+    ControlStyle "AUTOTRACK|HIGHLIGHTONMOUSEOVER",
+
+    ControlBackdrop "ExitMenuButtonBackdrop",
+    Frame "BACKDROP" "ExitMenuButtonBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+        BackdropCornerSize  0.014,
+        BackdropBackgroundSize  0.026,
+        BackdropBackgroundInsets 0.004 0.004 0.004 0.004,
+        BackdropEdgeFile "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropBlendAll,
+    }
+
+    ControlPushedBackdrop "ExitMenuButtonPushedBackdrop",
+    Frame "BACKDROP" "ExitMenuButtonPushedBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+        BackdropCornerSize  0.014,
+        BackdropBackgroundSize  0.026,
+        BackdropBackgroundInsets 0.004 0.004 0.004 0.004,
+        BackdropEdgeFile "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropBlendAll,
+    }
+
+    ControlDisabledBackdrop "ExitMenuButtonDisabledBackdrop",
+    Frame "BACKDROP" "ExitMenuButtonDisabledBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+        BackdropCornerSize  0.014,
+        BackdropBackgroundSize  0.026,
+        BackdropBackgroundInsets 0.004 0.004 0.004 0.004,
+        BackdropEdgeFile "UI\Widgets\EscMenu\Human\blank-background.blp",
+        BackdropBlendAll,
+    }
+
+    ControlMouseOverHighlight "ExitMenuButtonMouseOverHighlight",
+    Frame "HIGHLIGHT" "ExitMenuButtonMouseOverHighlight" {
+        HighlightType "FILETEXTURE",
+        HighlightAlphaFile "UI\Widgets\BattleNet\bnet-button01-highlight-mouse.blp",    
+        HighlightAlphaMode "ADD",
+    }
+	
+	ButtonText "ExitMenuButtonText",
+	Frame "TEXT" "ExitMenuButtonText" {
+		DecorateFileNames, 
+		FrameFont "MasterFont", 0.013, "",
+		FontJustificationH JUSTIFYCENTER,
+		FontJustificationV JUSTIFYMIDDLE,
+		FontColor 0.99 0.827 0.0705 1.0,
+		FontHighlightColor 1.0 1.0 1.0 1.0,
+		//FontDisabledColor 0.5 0.5 0.5 1.0,
+		//FontShadowColor 0.0 0.0 0.0 0.9,	
+		//FontShadowOffset 0.002 -0.002,	
+		Text "x"
+	}
+}
+
+Frame "SIMPLEFRAME" "SimplestFrame" {
+}

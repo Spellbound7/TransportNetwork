@@ -1,0 +1,70 @@
+// Code by Tasyen - https://www.hiveworkshop.com/threads/ui-frames-and-tooltips.316665/
+
+// -- LOCAL TEMPLATES -------------------------------------------------------
+Frame "BACKDROP" "BoxedTextBackgroundTemplate" {
+    DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
+    BackdropTileBackground, //Tile mode enabled
+    BackdropBackground  "ToolTipBackground", //BackgroundFile
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize  0.01, //higher numbers make the corners rounder.
+    BackdropBackgroundInsets 0.0022 0.0022 0.0022 0.0022, //makes the background smaller, from the outside.
+    BackdropEdgeFile  "ToolTipBorder", //the border File
+    BackdropBlendAll,
+}
+
+// -- Frames -------------------------------------------------------
+Frame "BACKDROP" "SimpleText" INHERITS "BoxedTextBackgroundTemplate" {
+   UseActiveContext,
+
+    Frame "TEXT" "SimpleTextValue" {
+        DecorateFileNames,
+        SetPoint CENTER, "SimpleText", CENTER, 0.0, 0.0,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.011, "",
+        FontColor 1.0 1.0 1.0 1.0,
+        //FontShadowColor 0.0 0.0 0.0 0.9,
+        //FontShadowOffset 0.001 -0.001,
+    }
+}
+
+Frame "BACKDROP" "SimpleTextSmall" INHERITS "BoxedTextBackgroundTemplate" {
+    UseActiveContext,
+
+    Frame "TEXT" "SimpleTextSmallValue" {
+        DecorateFileNames,
+        SetPoint CENTER, "SimpleTextSmall", CENTER, -0.0002, -0.0001,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.007, "",
+        FontColor 1.0 1.0 1.0 1.0,
+        //FontShadowColor 0.0 0.0 0.0 0.9,
+        //FontShadowOffset 0.001 -0.001,
+    }
+}
+
+Frame "SIMPLEFRAME" "SimpleString" {
+    Width 0.0001,
+    Height 0.0001,
+    DecorateFileNames,
+    String "SimpleStringValue" {
+        Anchor TOPLEFT, 0, 0,
+        Font "InfoPanelTextFont", 0.01,
+    }
+}
+
+Frame "TEXT" "SimpleTextButton" {
+    // FontColor 1.0 0.8 0.2 1.0, //red green blue alpha
+    FontDisabledColor 0.5 0.5 0.5 1.0,
+    // FontHighlightColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.002 -0.002,
+    FrameFont "fonts\\frizqt__.ttf", 0.01, "",
+}
+
+Frame "TEXT" "SimpleTextButtonV2" {
+    // FontColor 1.0 0.8 0.2 1.0, //red green blue alpha
+    FontDisabledColor 0.5 0.5 0.5 1.0,
+    // FontHighlightColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.002 -0.002,
+    FrameFont "fonts\\frizqt__.ttf", 0.009, "",
+}

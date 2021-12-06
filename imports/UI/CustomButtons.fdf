@@ -1,0 +1,75 @@
+
+Frame "BACKDROP" "CustomButtonBackdrop" {
+    Width 0.6,
+    Height 0.16,
+
+    BackdropTileBackground,
+    BackdropBackground  "UI\Widgets\EscMenu\Human\human-options-menu-background.blp",
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize  0.064,
+    BackdropBackgroundSize  0.128,
+    BackdropBackgroundInsets 0.01 0.01 0.01 0.01,
+    BackdropEdgeFile  "UI\Widgets\EscMenu\Human\human-options-button-border-up.blp",
+}
+
+Frame "GLUETEXTBUTTON" "CustomButton" {
+    Width 0.085,
+    Height 0.022,
+    ControlStyle "AUTOTRACK|HIGHLIGHTONMOUSEOVER",
+
+    ControlBackdrop "CustomButtonBackdrop",
+    Frame "BACKDROP" "CustomButtonBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\human-options-menu-background.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+		BackdropCornerSize  0.0095,
+		BackdropBackgroundSize  0.256,
+		BackdropBackgroundInsets 0.005 0.005 0.005 0.005,
+        BackdropEdgeFile  "UI\Widgets\EscMenu\Human\human-options-button-border-up.blp",
+        BackdropBlendAll,
+    }
+
+    ControlPushedBackdrop "CustomButtonPushedBackdrop",
+    Frame "BACKDROP" "CustomButtonPushedBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\human-options-menu-background.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+		BackdropCornerSize  0.0095,
+		BackdropBackgroundSize  0.256,
+		BackdropBackgroundInsets 0.005 0.005 0.005 0.005,
+        BackdropEdgeFile  "UI\Widgets\EscMenu\Human\human-options-button-border-down.blp",
+        BackdropBlendAll,
+    }
+
+    ControlDisabledBackdrop "CustomButtonDisabledBackdrop",
+    Frame "BACKDROP" "CustomButtonDisabledBackdrop" {
+        BackdropBackground "UI\Widgets\EscMenu\Human\human-options-button-background-disabled.blp",
+        BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+		BackdropCornerSize  0.0095,
+		BackdropBackgroundSize  0.256,
+		BackdropBackgroundInsets 0.005 0.005 0.005 0.005,
+        BackdropEdgeFile  "UI\Widgets\EscMenu\Human\human-options-button-border-up.blp",
+        BackdropBlendAll,
+    }
+
+    ControlMouseOverHighlight "CustomButtonMouseOverHighlight",
+    Frame "HIGHLIGHT" "CustomButtonMouseOverHighlight" {
+        HighlightType "FILETEXTURE",
+        HighlightAlphaFile "UI\Widgets\BattleNet\bnet-button01-highlight-mouse.blp",
+		//HighlightAlphaFile "UI\Widgets\EscMenu\Human\human-options-button-highlight.blp",
+        HighlightAlphaMode "ADD",
+    }
+	
+	ButtonText "CustomButtonText",
+	Frame "TEXT" "CustomButtonText" {
+		DecorateFileNames,
+		FrameFont "MasterFont", 0.009, "",
+		FontJustificationH JUSTIFYCENTER,
+		FontJustificationV JUSTIFYMIDDLE,
+		FontJustificationOffset 0.0 -0.001,
+		//FontColor 0.99 0.827 0.0705 1.0,
+		//FontHighlightColor 0.99 0.827 0.0705 1.0,
+		FontDisabledColor 0.5 0.5 0.5 1.0,
+		FontShadowColor 0.0 0.0 0.0 0.9,	
+		FontShadowOffset 0.002 -0.002,	
+		Text ""
+	}
+}

@@ -1,0 +1,112 @@
+package Book
+
+/*
+    Creates a system of Books and Pages for displaying framehandles. If a Page has reached it's limit,
+    a new Page is created to hold the new framehandles. All Page are designed to be held within Books.
+*/
+
+import initlater TransportNetwork
+
+
+let pageHash = new HashMap<int, Page>
+
+public class Book
+
+    HashMap<int, Page> pages
+    int numberOfPages
+    int maxItemsPerPage
+    Page firstPage
+    Page lastPage
+
+    construct(int pageSize)
+        pages = new HashMap<int, Page>
+        maxItemsPerPage = pageSize
+        numberOfPages = 0
+        firstPage = null
+        lastPage = null
+        new Page(this)
+
+    ondestroy
+        destroy pages
+
+    function addPage(Page page)
+        numberOfPages++
+        page.number = numberOfPages
+        pages.put(numberOfPages, page)
+        firstPage = pages.get(1)
+        lastPage = pages.get(numberOfPages)
+
+    /** this will not automatically refactor the list to remove blank spaces. Only remove last pages.*/
+    function removePage(Page page)
+        pages.remove(page.number)
+        numberOfPages--
+        lastPage = pages.get(numberOfPages)
+
+    function getPage(int pageNumber) returns Page
+        return pages.get(pageNumber)
+
+    function addUnitUI(UnitUI ui)
+        lastPage.addItem(ui)
+
+    function removeUnitUI(UnitUI ui) returns int
+        return ui.page.removeItem(ui)
+
+    function isEmpty() returns bool
+        if pages.get(1) == null
+            return true
+        return false
+
+public class Page
+
+    int number
+    int maxSize
+    Book book
+    LinkedList<UnitUI> items
+
+    construct(Book whichBook)
+        items = new LinkedList<UnitUI>
+        number = 0
+        maxSize = whichBook.maxItemsPerPage
+        book = whichBook
+        whichBook.addPage(this)
+
+    ondestroy
+        destroy items
+
+    /** if this current Page has reached its limit, a new page with a page number + 1 will be created, added to the same book, and returned.*/
+    function addItem(UnitUI ui) returns thistype
+        if items.size() < maxSize
+            items.push(ui)
+            ui.page = this
+        else
+            let newPage = new Page(book)
+            newPage.items.push(ui)
+            ui.page = newPage
+            return newPage
+        return this
+
+    static function getNumFromItem(UnitUI ui) returns int
+        return ui.page.number
+
+    /** removes a frame from a Page and returns the number of that Page or the one before it if the Page becomes empty from that action. */
+    function removeItem(UnitUI ui) returns int
+        items.remove(ui)
+        ui.page = null
+        if items.isEmpty()
+            let num = number - 1
+            book.removePage(this)
+            destroy this
+            return num
+        else
+            for pgNum = number to book.numberOfPages
+                let currentPage = book.pages.get(pgNum)
+                let nextPage = book.pages.get(pgNum + 1)
+                if nextPage != null
+                    while currentPage.items.size() < currentPage.maxSize and not nextPage.items.isEmpty()
+                        let ico = nextPage.items.dequeue()
+                        currentPage.items.push(ico)
+                        ico.page = currentPage
+                    if nextPage.items.isEmpty()
+                        nextPage.book.removePage(nextPage)
+                        destroy nextPage
+            return number

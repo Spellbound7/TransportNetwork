@@ -1,0 +1,194 @@
+package SmartTrack
+
+/*
+    SmartTrack v1.1
+
+    by Spellbound
+
+    DESCRIPTION
+    SmartTrack will allow you to set a unit as a 'tracker'. When this unit is right-clicked by another unit,
+    the tracker will begin to check if the right-clicker is within the range that was assigned to it. When the
+    unit comes in range, an event fires.
+
+    API
+
+        The Tracker class is an abstract. To use it you have to create your own class that extends Tracker.
+        The constructor for your new class will have to have a super. For example:
+
+        class NewTracker extends Tracker
+
+            construct(unit trackerUnit, real trackRange)
+                super(trackerUnit, trackRange)
+
+            override function onFilter(unit whichUnit)
+
+            override function inRange(unit whichUnit)
+
+            override function onFinish(unit whichUnit)
+
+        new MyCustomTrackerClass(whatRange, whichUnit) returns Tracker
+            This is how you setup a unit as a tracker. A unit can only have 1 Tracker instance on it at a time.
+            Calling this on a unit that is already a tracker will destroy the previous tracking and replace it with
+            a new instance. It is not recommended you do this.
+
+        Tracker.getId(whichUnit) returns Tracker
+            If you don't have the Tracker instance stored, you can retrieve it with this function. Use it on the
+            'smarty', aka the unit that did the right-clicking.
+
+        destroy whichTracker
+            This is how you remove a unit as a tracker.
+
+        TrackInstance.terminate(unit whichUnit, boolean halt)
+            If you want to terminate a TrackInstance, call this function. Setting bolean halt to true will cause the
+            unit to stop moving.
+
+*/
+
+import public ClosureTimers
+import public ClosureEvents
+import public LinkedList
+import public HashMap
+import TimerUtils
+import OrderIds
+
+timer trackClock
+var ignoreOrder = false
+let tInstListGlobal = new LinkedList<TrackInstance>
+
+constant real TRACK_INTERVAL = .25
+
+public abstract class Tracker
+    real range
+    unit source
+    protected LinkedList<TrackInstance> tInstList
+    private static let localHash = new HashMap<int, Tracker>
+
+    /** Only apply this to live units. That doesn't mean undead units can't be Trackers, but you need to be able to right-click them. No right-click, no point. Live units ONLY. */
+    construct(unit trackerUnit, real trackRange)
+        if trackerUnit.isAlive()
+            let check = localHash.get(trackerUnit.getHandleId())
+            if check != null
+                destroy check
+            this.range = trackRange
+            this.source = trackerUnit
+            tInstList = new LinkedList<TrackInstance>
+            localHash.put(trackerUnit.getHandleId(), this)
+        else
+            destroy this
+
+    ondestroy
+        interruptAllTracking()
+        destroy tInstList
+        localHash.remove(this.source.getHandleId())
+        this.source = null
+        this.range = 0.
+
+    static function get(unit u) returns thistype
+        return localHash.get(u.getHandleId())
+
+    static function is(unit u) returns bool
+        return localHash.has(u.getHandleId())
+
+    function interruptAllTracking()
+        if not tInstList.isEmpty()
+            for tInst in tInstList
+                destroy tInst
+
+    // Obligatory functions
+    abstract function onFilter(unit _u) returns bool
+    function inRange(unit _u)
+
+    // Optional functions
+    function onStart(unit _u)
+    function onFinish(unit _u)
+
+class TrackInstance
+    unit smarty
+    Tracker tracker
+    private static let localHash = new HashMap<int, thistype>
+
+    construct(unit u, Tracker track)
+        this.smarty = u
+        this.tracker = track
+        localHash.put(u.getHandleId(), this)
+        track.tInstList.push(this)
+        tInstListGlobal.push(this)
+        if tInstListGlobal.size() == 1
+            trackClock = getTimer()
+            trackClock.startPeriodic(TRACK_INTERVAL, function callback)
+        track.onStart(u)
+
+    static function callback()
+        for tInst in tInstListGlobal
+            let track = tInst.tracker
+            if track.onFilter(tInst.smarty)
+                if IsUnitInRange(tInst.smarty, track.source, track.range)
+                    ignoreOrder = true
+                    track.inRange(tInst.smarty)
+                    ignoreOrder = false
+                    destroy tInst
+            else
+                destroy tInst
+
+    ondestroy
+        tracker.onFinish(smarty)
+        tracker.tInstList.remove(this)
+        tInstListGlobal.remove(this)
+        localHash.remove(this.smarty.getHandleId())
+        if tInstListGlobal.isEmpty()
+            trackClock.release()
+        this.smarty = null
+        this.tracker = null
+
+    static function get(unit u) returns thistype
+        return localHash.get(u.getHandleId())
+    
+
+function trackOrders()
+    let smarty = GetTriggerUnit()
+    let target = GetOrderTargetUnit()
+    let tInst = TrackInstance.get(smarty)
+    
+    if not ignoreOrder
+        // if track is not null that means you have right-clicked on a unit.
+        if target != null and GetIssuedOrderId() == Orders.smart
+            let tracker = Tracker.get(target)
+            if tracker != null
+                if tInst == null // If the right-clicker has no tracker identified...
+                    if IsUnitInRange(smarty, target, tracker.range)
+                        if tracker.onFilter(smarty)
+                            tracker.onStart(smarty)
+                            ignoreOrder = true
+                            tracker.inRange(smarty)
+                            ignoreOrder = false
+                            tracker.onFinish(smarty)
+                    else
+                        // If not in range, run the filter. If it passes, create a tracker instance.
+                        if tracker.onFilter(smarty)
+                            new TrackInstance(smarty, tracker)
+                else
+                    // check that the right-clicker did not re-click on the same Tracker that was already tracking it.
+                    if tInst.tracker.source != target
+                        // If the right-clicker was already being tracked by another tracker but then
+                        // right-clicked on another tracker, check if that new tracker is in range.
+                        if IsUnitInRange(smarty, target, tracker.range)
+                            destroy tInst
+                            if tracker.onFilter(smarty)
+                                tracker.onStart(smarty)
+                                ignoreOrder = true
+                                tracker.inRange(smarty)
+                                ignoreOrder = false
+                                tracker.onFinish(smarty)
+                        else
+                            destroy tInst
+                            if tracker.onFilter(smarty)
+                                new TrackInstance(smarty, tracker)
+        else
+            // if you had a tracker but did not right-click on a unit, remove from smarty list.
+            if tInst != null
+                destroy tInst
+  
+init
+    registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER, function trackOrders)
+    registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER, function trackOrders)
+    registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER, function trackOrders)

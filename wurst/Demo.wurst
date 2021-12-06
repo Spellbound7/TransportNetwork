@@ -1,0 +1,99 @@
+package Demo
+
+import TransportNetwork
+import UnitIndexer
+import Assets
+                
+constant LOAD_TIME = 1.
+constant UNLOAD_TIME = 1.
+constant LOAD_RANGE = 160.
+
+
+/*==================================================================================
+//==================================================================================
+//  NETWORK
+*/
+
+let burrowNetwork = new TransportNetwork(players[PLAYER_NEUTRAL_PASSIVE])
+
+// Network Right-Click Tracker
+class BurrowTracker extends Tracker
+
+    construct(unit whichUnit, real trackingRange)
+        super(whichUnit, trackingRange)
+
+    override function onFilter(unit smarty) returns bool
+        return Terminal.canAccess(smarty, this.source) and smarty.isAllyOf(this.source) and not smarty.isType(UNIT_TYPE_STRUCTURE) and not smarty.isType(UNIT_TYPE_FLYING) and smarty != this.source
+
+    override function inRange(unit smarty)
+        Terminal.queueUp(smarty, this.source)
+            
+// Terminal
+class BurrowTerminal extends Terminal
+
+    construct(unit u, real loadInterval, real unloadInterval)
+        super(u, loadInterval, unloadInterval, NETWORK_LOAD_ABIL_ID, NETWORK_UNLOAD_ABIL_ID, NETWORK_STOP_UNLOAD_ABIL_ID)
+
+    override function onLoad(unit u)
+        addEffect(Objects.impaleTargetDust, u.getPos3Real())
+
+    override function onUnload(unit u)
+        addEffect(Objects.impaleTargetDust, u.getPos3Real())
+
+init
+    for id = 0 to bj_MAX_PLAYER_SLOTS
+        burrowNetwork.giveAccess(players[id])
+        // the network is neutral-owned. give access to all players so that the moment they have a terminal they can access it.
+        // different players can use the same Network. Their units will never mix.
+
+    onUnitIndex() ->
+        let u = getIndexingUnit()
+        if u.getTypeId() == UnitIds.trollburrow
+            let terminal = new BurrowTerminal(u, LOAD_TIME, UNLOAD_TIME)
+            burrowNetwork.addTerminal(terminal, new BurrowTracker(u, LOAD_RANGE))
+
+
+/*==================================================================================
+//==================================================================================
+//  SINGLE STORAGE
+*/
+
+let networkHash = new HashMap<unit, TransportNetwork>
+
+// Network Right-Click Tracker
+class FarmTracker extends Tracker
+
+    construct(unit whichUnit, real trackingRange)
+        super(whichUnit, trackingRange)
+
+    override function onFilter(unit smarty) returns bool
+        return Terminal.canAccess(smarty, this.source) and smarty.isAllyOf(this.source) and not smarty.isType(UNIT_TYPE_STRUCTURE) and not smarty.isType(UNIT_TYPE_FLYING) and smarty != this.source
+
+    override function inRange(unit smarty)
+        Terminal.queueUp(smarty, this.source)
+            
+// Terminal
+class FarmTerminal extends Terminal
+
+    construct(unit u, real loadInterval, real unloadInterval)
+        super(u, loadInterval, unloadInterval, NETWORK_LOAD_ABIL_ID, NETWORK_UNLOAD_ABIL_ID, NETWORK_STOP_UNLOAD_ABIL_ID)
+
+    override function onLoad(unit u)
+        PlaySound(Sounds.loading)
+
+    override function onUnload(unit u)
+        PlaySound(Sounds.loading)
+
+init
+    onUnitIndex() ->
+        let u = getIndexingUnit()
+        if u.getTypeId() == UnitIds.farm
+            let terminal = new FarmTerminal(u, LOAD_TIME, UNLOAD_TIME)
+            let network = new TransportNetwork(GetOwningPlayer(u))
+            network.addTerminal(terminal, new BurrowTracker(u, LOAD_RANGE))
+            networkHash.put(u, network)
+
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) ->
+        let u = EventData.getTriggerUnit()
+        destroy networkHash.get(u)
+        networkHash.remove(u)

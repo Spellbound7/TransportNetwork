@@ -1,0 +1,219 @@
+// Code by Tasyen - https://www.hiveworkshop.com/threads/ui-frames-and-tooltips.316665/
+
+// -- LOCAL TEMPLATES -------------------------------------------------------
+Frame "BACKDROP" "BoxedTextBackgroundTemplate" {
+    DecorateFileNames, //Look-Up Names in some String table (for example gameinterface)
+    BackdropTileBackground, //Tile mode enabled
+    BackdropBackground  "ToolTipBackground", //BackgroundFile
+    BackdropCornerFlags "UL|UR|BL|BR|T|L|B|R",
+    BackdropCornerSize  0.008, //higher numbers make the corners rounder.
+    BackdropBackgroundInsets 0.0022 0.0022 0.0022 0.0022, //makes the background smaller, from the outside.
+    BackdropEdgeFile  "ToolTipBorder", //the border File
+    BackdropBlendAll,
+}
+
+// -- Frames -------------------------------------------------------
+Frame "BACKDROP" "BoxedTextSpecial" INHERITS "BoxedTextBackgroundTemplate" {
+   UseActiveContext,
+
+   Frame "TEXT" "BoxedTextSpecialTitle" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.005, -0.005, //Positionate "BoxedTextSimpleTitle"'s TOPLEFT to "BoxedText"'s TOPLEFT with an offset
+        SetPoint TOPRIGHT, "BoxedText", TOPRIGHT, -0.005, -0.005,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 1.0 1.0 1.0 1.0, //Red Green Blue Alpha 0.0 to 1.0
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+
+    Frame "TEXT" "BoxedTextSpecialResource" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.02, -0.02,
+        SetPoint BOTTOMRIGHT,  "BoxedText", BOTTOMRIGHT, -0.005, 0.005,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 0.8 0.4 1.0 1.0,
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+
+    Frame "TEXT" "BoxedTextSpecialValue" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.005, -0.032,
+        SetPoint BOTTOMRIGHT,  "BoxedText", BOTTOMRIGHT, -0.005, 0.005,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 1.0 1.0 1.0 1.0,
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+
+    Frame "BACKDROP" "BoxedTextSpecialIcon" {
+        Width 0.011,
+        Height 0.011,
+        SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.005, -0.019,
+        BackdropBackground  "UI\Widgets\ToolTips\Human\ToolTipStonesIcon.blp", //"ReplaceableTextures\CommandButtons\BTNDevotion.blp",
+        BackdropBlendAll,
+    }
+}
+
+
+Frame "BACKDROP" "BoxedText" INHERITS "BoxedTextBackgroundTemplate" {
+   UseActiveContext,
+
+   Frame "TEXT" "BoxedTextTitle" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedText", TOPLEFT, 0.00475, -0.00475, //Positionate "BoxedTextSimpleTitle"'s TOPLEFT to "BoxedText"'s TOPLEFT with an offset
+        SetPoint TOPRIGHT, "BoxedText", TOPRIGHT, -0.00475, -0.00475,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.011, "",
+        FontColor 1.0 1.0 1.0 1.0, //Red Green Blue Alpha 0.0 to 1.0
+        //FontShadowColor 0.0 0.0 0.0 0.9,
+        //FontShadowOffset 0.001 -0.001,
+    }
+
+
+    // GOLD
+
+    Frame "BACKDROP" "GoldIcon" {
+        Width 0.01,
+        Height 0.01,
+        SetPoint TOPLEFT, "BoxedTextTitle", BOTTOMLEFT, 0.0, -0.004,
+        BackdropBackground  "UI\Widgets\ToolTips\Human\ToolTipGoldIcon.blp",
+        BackdropBlendAll,
+    }
+            Frame "TEXT" "GoldAmount" {
+                DecorateFileNames,
+                SetPoint LEFT, "GoldIcon", RIGHT, 0.00275, 0.0,
+                FontFlags "FIXEDSIZE",
+                FrameFont "MasterFont", 0.011, "",
+                FontColor 1.0 0.8 0.0 1.0,
+                //FontShadowColor 0.0 0.0 0.0 0.9,
+                //FontShadowOffset 0.001 -0.001,
+            }
+
+
+    // LUMBER
+
+    Frame "BACKDROP" "LumberIcon" {
+        Width 0.01,
+        Height 0.01,
+        SetPoint LEFT, "GoldAmount", RIGHT, 0.00575, 0.0,
+        BackdropBackground  "UI\Widgets\ToolTips\Human\ToolTipLumberIcon.blp",
+        BackdropBlendAll,
+    }
+            Frame "TEXT" "LumberAmount" {
+                DecorateFileNames,
+                SetPoint LEFT, "LumberIcon", RIGHT, 0.00275, 0.0,
+                FontFlags "FIXEDSIZE",
+                FrameFont "MasterFont", 0.011, "",
+                FontColor 1.0 0.8 0.0 1.0,
+                //FontShadowColor 0.0 0.0 0.0 0.9,
+                //FontShadowOffset 0.001 -0.001,
+            }
+
+
+    // FOOD
+
+    Frame "BACKDROP" "FoodIcon" {
+        Width 0.01,
+        Height 0.01,
+        SetPoint LEFT, "LumberAmount", RIGHT, 0.00575, 0.0,
+        BackdropBackground  "UI\Widgets\ToolTips\Human\ToolTipSupplyIcon.blp",
+        BackdropBlendAll,
+    }
+            Frame "TEXT" "FoodAmount" {
+                DecorateFileNames,
+                SetPoint LEFT, "FoodIcon", RIGHT, 0.00275, 0.0,
+                FontFlags "FIXEDSIZE",
+                FrameFont "MasterFont", 0.011, "",
+                FontColor 1.0 0.8 0.0 1.0,
+                //FontShadowColor 0.0 0.0 0.0 0.9,
+                //FontShadowOffset 0.001 -0.001,
+            }
+
+
+    Frame "TEXT" "BoxedTextValue" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "GoldIcon", BOTTOMLEFT, 0.0, -0.00475,
+        SetPoint BOTTOMRIGHT,  "BoxedText", BOTTOMRIGHT, -0.00475, 0.00475,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.011, "",
+        FontColor 1.0 1.0 1.0 1.0,
+        //FontShadowColor 0.0 0.0 0.0 0.9,
+        //FontShadowOffset 0.001 -0.001,
+    }
+}
+
+
+Frame "BACKDROP" "TooltipText" INHERITS "BoxedTextBackgroundTemplate" {
+    UseActiveContext,
+
+    // Frame core. Everything should adjust depending on this one.
+    Frame "TEXT" "TooltipTextValue" {
+        Width 0.28,
+        DecorateFileNames,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.0105, "",
+        FontColor 1.0 1.0 1.0 1.0,
+    }
+
+    Frame "BACKDROP" "TooltipSeparator" {
+        Height 0.0008,
+        UseActiveContext,
+        SetPoint BOTTOMLEFT, "TooltipTextValue", TOPLEFT, 0.003, 0.005,
+        SetPoint BOTTOMRIGHT, "TooltipTextValue", TOPRIGHT, -0.003, 0.005,
+        BackdropBackground "replaceabletextures\teamcolor\teamcolor08",
+    }
+
+    Frame "TEXT" "TooltipTextTitle" {
+        DecorateFileNames,
+        SetPoint BOTTOMLEFT, "TooltipTextValue", TOPLEFT, 0., 0.0115,
+        SetPoint BOTTOMRIGHT, "TooltipTextValue", TOPRIGHT, 0., 0.0115,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.0105, "",
+        FontColor 1.0 1.0 1.0 1.0, //Red Green Blue Alpha 0.0 to 1.0
+        //FontShadowColor 0.0 0.0 0.0 0.9,
+        //FontShadowOffset 0.001 -0.001,
+    }
+
+}
+
+
+Frame "BACKDROP" "BoxedTextDisabled" INHERITS "BoxedTextBackgroundTemplate" {
+   UseActiveContext,
+
+   Frame "TEXT" "BoxedTextDisabledTitle" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedTextDisabled", TOPLEFT, 0.005, -0.005,
+        SetPoint TOPRIGHT, "BoxedTextDisabled", TOPRIGHT, -0.005, -0.005,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 1.0 1.0 1.0 1.0, //Red Green Blue Alpha 0.0 to 1.0
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+
+    Frame "TEXT" "BoxedTextDisabledReq" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedTextDisabledTitle", BOTTOMLEFT, 0., -0.005,
+        SetPoint TOPRIGHT,  "BoxedTextDisabled", BOTTOMRIGHT, -0.005, 0.005,
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 1.0 1.0 0.0 1.0,
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+
+    Frame "TEXT" "BoxedTextDisabledValue" {
+        DecorateFileNames,
+        SetPoint TOPLEFT, "BoxedTextDisabledReq", BOTTOMLEFT, 0., -0.005,
+        SetPoint BOTTOMRIGHT,  "BoxedTextDisabled", BOTTOMRIGHT, -0.005, 0.005, // place the BOTTOMRIGHT of BoxedTextDisabledValue to the BOTTOMRIGHT of BoxedTextDisabled, with offset
+        FontFlags "FIXEDSIZE",
+        FrameFont "MasterFont", 0.010, "",
+        FontColor 1.0 1.0 1.0 1.0,
+        FontShadowColor 0.0 0.0 0.0 0.9,
+        FontShadowOffset 0.001 -0.001,
+    }
+}

@@ -1,0 +1,42 @@
+package PlayerFaction
+
+import HashMap
+import Assets
+
+constant factionHash = new HashMap<player, Faction>
+
+init
+    for i = 0 to bj_MAX_PLAYER_SLOTS
+        let play = players[i]
+        Faction faction
+
+        if GetPlayerRace(play) == RACE_HUMAN
+            faction = new Faction()
+            //faction.flagPath = UI.waypointFlag // default
+        else if GetPlayerRace(play) == RACE_ORC
+            faction = new Faction()
+            faction.flagPath = UI.waypointFlag
+        else if GetPlayerRace(play) == RACE_UNDEAD
+            faction = new Faction()
+            faction.flagPath = UI.waypointFlag
+        else if GetPlayerRace(play) == RACE_NIGHTELF
+            faction = new Faction()
+            faction.flagPath = UI.waypointFlag
+        else
+            faction = new Faction()
+            
+        factionHash.put(play, faction)
+
+
+public class Faction
+
+    string flagPath = UI.waypointFlag
+    // music
+    // announcer?
+    // cursor???
+    // UI skin?????
+
+    construct()
+
+    static function getFlagPath(player play) returns string
+        return factionHash.get(play).flagPath

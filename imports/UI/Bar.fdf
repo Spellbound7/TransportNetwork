@@ -1,0 +1,83 @@
+String "MyBarTextTemplate" {
+    //FontColor 0.99 0.427 0.0705 1.0, //Red Green Blue Alpha 0.0 to 1.0
+    FontColor 1.0 1.0 1.0 1.0,
+    FontShadowColor 0.0 0.0 0.0 0.9,
+    FontShadowOffset 0.001 -0.001,
+    // Font "MasterFont", 0.01, //MasterFont is only valid with "DecorateFileNames,"
+    Font "fonts\frizqt__.ttf", 0.01,
+}
+
+Frame "SIMPLESTATUSBAR" "MyBarEx" {
+    Width 0.07, //Default Width
+    Height 0.012, //Default Height
+    BarTexture "ui\glues\loading\loadbar\loading-barfill.dds", //Default BarTexture
+    Layer "BACKGROUND" { //A simpleFrames thing, where this is placed layer wise
+        Texture "MyBarExBackground"{ //the BACKGROUND Texture named "MyBarExBackground" its also a frame and a child
+            File "Replaceabletextures\Teamcolor\Teamcolor27.blp", //Default Texture for "MyBarExBackground"
+        }
+    }
+    Frame "SIMPLEFRAME" "MyBarExFrame" { //Child of "MyBarEx"
+        SetPoint TOPLEFT, "MyBarEx", TOPLEFT, -0.0003, 0.006,
+        SetPoint BOTTOMRIGHT, "MyBarEx", BOTTOMRIGHT, 0.0003, -0.006,
+        UseActiveContext,
+        Layer "ARTWORK" {
+            Texture "MyBarExBorderLeft" {
+                SetPoint TOPRIGHT, "MyBarExFrame", TOPLEFT, 0, 0,
+                SetPoint BOTTOMRIGHT, "MyBarExFrame", BOTTOMLEFT, 0, 0,
+                Width 0.017,
+                // File "ui\widgets\glues\loading-namebackground",
+                File "ui\glues\loading\loadbar\loading-barborder",
+                TexCoord 0, 0.0801, 0, 1,
+                AlphaMode "ALPHAKEY",
+            }
+            Texture "MyBarExBorderRight" {
+                SetPoint TOPLEFT, "MyBarExFrame", TOPRIGHT, 0, 0,
+                SetPoint BOTTOMLEFT, "MyBarExFrame", BOTTOMRIGHT, 0, 0,
+                Width 0.017,
+                File "ui\glues\loading\loadbar\loading-barborder",     
+                TexCoord 0.9219, 1, 0, 1,
+                AlphaMode "ALPHAKEY",
+            }
+            Texture "MyBarExBorderCenter" {
+                SetPoint TOPLEFT, "MyBarExBorderLeft", TOPRIGHT, 0, 0,
+                SetPoint BOTTOMRIGHT, "MyBarExBorderRight", BOTTOMLEFT, 0, 0,
+                File "ui\glues\loading\loadbar\loading-barborder",
+                TexCoord 0.0801, 0.9219, 0, 1,
+                AlphaMode "ALPHAKEY",
+            }
+            String "MyBarExText" INHERITS "MyBarTextTemplate" {
+                SetPoint CENTER, "MyBarEx", CENTER, 0.0, -0.0008,
+                Text "MyBarEx", //Default Text for "MyBarExText" which takes over Data from "MyBarTextTemplate"
+            }    
+        }
+    }
+}
+
+Frame "SIMPLESTATUSBAR" "MyBar" {
+    Width 0.07,
+    Height 0.012,
+    BarTexture "ui\feedback\xpbar\human-bigbar-fill",
+    Layer "BACKGROUND" {
+        Texture "MyBarBackground" {
+            File "Replaceabletextures\Teamcolor\Teamcolor27.blp",
+        }
+    }
+    Frame "SIMPLEFRAME" "MyBarFrame" {
+        // DecorateFileNames,
+        SetAllPoints,
+        Layer "ARTWORK" {
+            Texture "MyBarBorder" {
+               File "ui\feedback\xpbar\human-xpbar-border", //Default Texture for "MyBarExBorder"
+           }
+            String "MyBarText" INHERITS "MyBarTextTemplate" {
+                SetPoint CENTER, "MyBar", CENTER, 0.0, -0.0008,
+                Text "MyBar",
+            }
+        }
+    }
+}
+
+Frame "SIMPLESTATUSBAR" "MySimpleBar" {
+    Width 0.07,
+    Height 0.012,
+}

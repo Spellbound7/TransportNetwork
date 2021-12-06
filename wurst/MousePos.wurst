@@ -1,0 +1,16 @@
+package MousePos
+
+import ClosureEvents
+
+public real array mouseX
+public real array mouseY
+public vec2 array mousePos
+//public unit array mouseFocusUnit
+
+init
+    EventListener.add(EVENT_PLAYER_MOUSE_MOVE) ->
+        let id = EventData.getTriggerPlayer().getId()
+        mouseX[id] = BlzGetTriggerPlayerMouseX()
+        mouseY[id] = BlzGetTriggerPlayerMouseY()
+        mousePos[id] = vec2(mouseX[id], mouseY[id])
+        //mouseFocusUnit[id] = BlzGetMouseFocusUnit()

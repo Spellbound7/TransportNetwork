@@ -1,0 +1,8 @@
+package InitCustomUI
+
+boolean initDone
+
+public function initUI()
+    if not initDone
+        loadTOCFile("UI/CustomUI.toc")
+        initDone = true
