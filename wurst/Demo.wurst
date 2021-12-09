@@ -3,7 +3,7 @@ package Demo
 import TransportNetwork
 import UnitIndexer
 import Assets
-                
+
 constant LOAD_TIME = 1.
 constant UNLOAD_TIME = 1.
 constant LOAD_RANGE = 160.
@@ -27,7 +27,7 @@ class BurrowTracker extends Tracker
 
     override function inRange(unit smarty)
         Terminal.queueUp(smarty, this.source)
-            
+
 // Terminal
 class BurrowTerminal extends Terminal
 
@@ -71,7 +71,7 @@ class FarmTracker extends Tracker
 
     override function inRange(unit smarty)
         Terminal.queueUp(smarty, this.source)
-            
+
 // Terminal
 class FarmTerminal extends Terminal
 
@@ -95,5 +95,5 @@ init
 
     EventListener.add(EVENT_PLAYER_UNIT_DEATH) ->
         let u = EventData.getTriggerUnit()
-        destroy networkHash.get(u)
-        networkHash.remove(u)
+        if networkHash.has(u)
+            destroy networkHash.getAndRemove(u)
