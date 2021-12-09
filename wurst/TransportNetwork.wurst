@@ -36,7 +36,7 @@ package TransportNetwork
 
         //************************************************************************************************
         // Trackers
-        
+
             public class MyCustomTracker extends Tracker
 
                 construct(unit whichUnit, real trackingRange)
@@ -95,13 +95,13 @@ package TransportNetwork
             non-static functions
 
             whichNetwork.addTerminal(whichTerminal)
-                
+
                 This will make whichTerminal provide access to whichNetwork. A Terminal may only provide
                 access to ONE network. Passing a Terminal that's already part of another Network will
                 remove it from that Network and add it to whichNetwork's.
 
             whichNetwork.removeTerminal(whichTerminal)
-                
+
                 This will close down whichTerminal, making it unable to serve as an entry/exit to
                 whichNetwork. Passing a Terminal that is not connected to whichNetwork does nothing.
 
@@ -172,6 +172,7 @@ import MousePos
 import Assets
 import Orders
 import Book
+import SyncSimple
 
 Terminal array focusTerminal
 TransportNetwork array focusNetwork
@@ -261,7 +262,7 @@ public class TransportNetwork
     function addTerminal(Terminal terminal, Tracker track)
         if terminal.network != null
             terminal.network.removeTerminal(terminal)
-        
+
         listOfTerminals.push(terminal)
         if listOfTerminals.size() == 1
             lastTerminal = terminal
@@ -280,7 +281,7 @@ public class TransportNetwork
         terminal.trigOrder = CreateTrigger()
         terminal.trigOrder.registerUnitEvent(terminal.source, EVENT_UNIT_ISSUED_ORDER)
         terminal.trigOrder.addAction(function Terminal.onOrder)
-                      
+
     function removeTerminal(Terminal terminal)
         if listOfTerminals.has(terminal)
             terminal.source.removeAbility(terminal.loadAbil)
@@ -439,7 +440,7 @@ public abstract class Terminal
         for i = 0 to bj_MAX_PLAYER_SLOTS - 1
             let play = players[i]
             rally.put(play, new TerminalRally(play, u))
-            
+
     protected static function onSelectDeselect()
         let u = EventData.getTriggerUnit()
         let terminal = Terminal.get(u)
@@ -475,7 +476,7 @@ public abstract class Terminal
                             focusVisa[id] = null
                     else
                         terminal.deselect(play, id, visa)
-    
+
     /** A unit that was selected does not fire a EVENT_UNIT_DESELECTED on death. This is called manually on Terminal destruction if it was currently being selected.*/
     private function deselect(player play, int id, Visa visa)
         selectedTerminals[id].remove(this)
@@ -587,7 +588,7 @@ public abstract class Terminal
             if not terminal.visaListTemp.has(visa)
                 terminal.network.unloadAll(terminal, visa)
         else if spellID == terminal.stopAbil
-            doAfter(0.) -> 
+            doAfter(0.) ->
                 caster.issueImmediateOrderById(Orders.stop)
 
     // checks if the terminal.source was interrupted with a stop order or a stun
@@ -718,7 +719,7 @@ public abstract class Terminal
         departureClock.setData(this castTo int)
         departureClock.start(departureInterval, function departureResetClock) // prevents spam-clicking unit icons to quickly unload them
         network.unloadPassenger(passenger, this)
-    
+
     private static function departureResetClock()
         let terminal = GetExpiredTimer().getData() castTo thistype
         terminal.finish()
@@ -753,14 +754,15 @@ class TerminalRally
     private function moveFlag(unit newTarget, vec2 newPos)
         if this.flag != null        // since the flag could be attached to a target, it's simpler to just destroy and
             this.flag.destrHidden() // remake it every time rather than check whether it should be moved or recreated
+        var path = this.flagPath
+        if localPlayer != this.owner
+            path = ""
         if newTarget == null
-            if localPlayer == this.owner
-                this.flag = addEffect(this.flagPath, newPos)
-                this.flag.setColorByPlayer(this.owner)
+            this.flag = addEffect(path, newPos)
+            this.flag.setColorByPlayer(this.owner)
         else
-            if localPlayer == this.owner
-                this.flag = addEffect(this.flagPath, newTarget, SpecialAttachmentPoints.firstSprite)
-                this.flag.setColorByPlayer(this.owner)
+            this.flag = addEffect(path, newTarget, SpecialAttachmentPoints.firstSprite)
+            this.flag.setColorByPlayer(this.owner)
         this.target = newTarget
         this.point = newPos
 
@@ -804,7 +806,7 @@ class Visa
             trigSelect[id].registerPlayerUnitEvent(p, EVENT_PLAYER_UNIT_SELECTED, null)
             trigSelect[id].registerPlayerUnitEvent(p, EVENT_PLAYER_UNIT_DESELECTED, null)
             trigSelect[id].addAction(function Terminal.onSelectDeselect)
-    
+
     ondestroy
         if not listOfPassengers.isEmpty()
             for p in listOfPassengers
@@ -824,7 +826,7 @@ class Visa
             focusVisa[id] = null
             focusNetwork[id] = null
             focusTerminal[id] = null
-    
+
     /** when a player's access is revoked from a network, this function empties it of the player's units and destroys the visa when done.*/
     protected function empty()
         if not listOfPassengers.isEmpty()
@@ -836,7 +838,7 @@ class Visa
                     terminal.queueDeparture(this, 0)
                     terminal.network.visasToKill.push(this)
                 cList.close()
-        
+
     /** add a unit to a network, isolated from other player's own units inside it's own 'visa'. Unit's become Passengers once loaded.*/
     function addUnit(unit u, Terminal terminal)
         listOfPassengers.push(new Passenger(u, this, terminal))
@@ -923,17 +925,17 @@ function trackOrders()
             Terminal.get(terminalSource).unqueueArrival(u)
 
     // if the Terminal was ordered to stop, clear all arrivals and departures
-    else 
+    else
         let terminal = Terminal.get(u)
         if terminal != null and (order == Orders.stop or order == Orders.stunned)
             terminal.cancelAllTransit()
- 
+
 public constant NETWORK_LOAD_ABIL_ID = compiletime(ABIL_ID_GEN.next())
 public constant NETWORK_UNLOAD_ABIL_ID = compiletime(ABIL_ID_GEN.next())
 public constant NETWORK_STOP_UNLOAD_ABIL_ID = compiletime(ABIL_ID_GEN.next())
 
 @compiletime function gen()
-    
+
     new ChannelAbilityPreset(NETWORK_LOAD_ABIL_ID, 1, true)
     ..setIconNormal(Icons.bTNLoad)
     ..setButtonPositionNormalX(0)
@@ -1001,7 +1003,7 @@ init
     ..setPoint(FRAMEPOINT_LEFT, NETWORK_FRAME, FRAMEPOINT_RIGHT, COL_GAP + PAGE_FRAME_OFFSET, 0.)
 
     pageNumDisplay = getFrame("SimpleTextSmallValue", 0)..setText("0/0")
-    
+
     stopBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
     ..setSize(ICON_HEIGHT, ICON_WIDTH)
     ..setPoint(FRAMEPOINT_TOPLEFT, prevPageBtn, FRAMEPOINT_TOPRIGHT, COL_GAP, 0.)
@@ -1028,7 +1030,7 @@ init
     let rowInc = ICON_HEIGHT + ROW_GAP
     for i = 1 to ROWS_PER_PAGE
         ROW[i] = row - rowInc * i
-        
+
     // columns start from the left and move right
     let col = -(ICON_WIDTH + COL_GAP)
     let colInc = (ICON_WIDTH + COL_GAP)
@@ -1073,7 +1075,7 @@ init
         let id = owner.getId()
         if rallyMode[id] == null
             rallyMode[id] = new RallyFlagMouse(owner, id)
-        
+
     EventListener.add(EVENT_PLAYER_MOUSE_DOWN) ->
         let play = GetTriggerPlayer()
         let id = play.getId()
@@ -1082,18 +1084,25 @@ init
             rallyMode[id] = null
             if BlzGetTriggerPlayerMouseButton() == MOUSE_BUTTON_TYPE_LEFT
                 for terminal in selectedTerminals[id]
-                    unit mouseFocusUnit = null
+                    int mouseFocusUnitHandle = 0
                     if localPlayer == play
-                        mouseFocusUnit = BlzGetMouseFocusUnit()
-                    if mouseFocusUnit != null
-                        terminal.setRallyUnit(play, mouseFocusUnit)
-                        if terminal.source.getOwner() == play
-                            terminal.source.issueTargetOrderById(OrderIds.setrally, mouseFocusUnit)
-                    else
-                        let mousePos = EventData.getMouseWorldPos()
-                        terminal.setRallyPoint(play, mousePos)
-                        if terminal.source.getOwner() == play
-                            terminal.source.issuePointOrderById(OrderIds.setrally, mousePos)
+                        let mouseFocusUnit = BlzGetMouseFocusUnit()
+                        if mouseFocusUnit != null
+                            mouseFocusUnitHandle = mouseFocusUnit.getHandleId()
+
+                    IntSyncListener sync = synced -> begin
+                        if synced != 0
+                            let rally_unit = unitFromIndex(synced)
+                            terminal.setRallyUnit(play, rally_unit)
+                            if terminal.source.getOwner() == play
+                                terminal.source.issueTargetOrderById(OrderIds.setrally, rally_unit)
+                        else
+                            let mousePos = EventData.getMouseWorldPos()
+                            terminal.setRallyPoint(play, mousePos)
+                            if terminal.source.getOwner() == play
+                                terminal.source.issuePointOrderById(OrderIds.setrally, mousePos)
+                    end
+                    mouseFocusUnitHandle.sync(play, sync)
 
     onKeyPress(OSKEY_ESCAPE) () ->
         let id = GetTriggerPlayer().getId()
@@ -1102,7 +1111,7 @@ init
             rallyMode[id] = null
 
     // Passenger and Terminal death
-    EventListener.add(EVENT_PLAYER_UNIT_DEATH) -> 
+    EventListener.add(EVENT_PLAYER_UNIT_DEATH) ->
         let u = EventData.getTriggerUnit()
         let terminal = Terminal.get(u)
         if terminal != null
@@ -1137,10 +1146,12 @@ class RallyFlagMouse
         this.owner = owner
         this.id = id
         this.pos = mousePos[id]
-        if localPlayer == owner
-            this.flag = addEffect(Abilities.aneuTarget, this.pos)
-            //this.flag = addEffect(UI.waypointFlag, this.pos)
-            this.flag.setColorByPlayer(owner)
+        var path = Abilities.aneuTarget
+        if localPlayer != owner
+            path = ""
+        this.flag = addEffect(path, this.pos)
+        //this.flag = addEffect(UI.waypointFlag, this.pos)
+        this.flag.setColorByPlayer(owner)
         flagList.push(this)
         if flagList.size() == 1
             clock = getTimer()
@@ -1216,7 +1227,7 @@ public class UnitUI
                 currentPageNumber[id] = 0
         else
             if focusVisa[id] == visa
-                currentPageNumber[id] = page.number 
+                currentPageNumber[id] = page.number
                 play.hideNetwork(visa)
                 play.showNetwork(visa, pageNum)
 
