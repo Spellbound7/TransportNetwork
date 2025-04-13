@@ -19,40 +19,43 @@ public class Book
     Page lastPage
 
     construct(int pageSize)
-        pages = new HashMap<int, Page>
-        maxItemsPerPage = pageSize
-        numberOfPages = 0
-        firstPage = null
-        lastPage = null
-        new Page(this)
+        this.pages = new HashMap<int, Page>
+        this.maxItemsPerPage = pageSize
+        this.numberOfPages = 0
+        this.firstPage = null
+        this.lastPage = null
 
     ondestroy
         destroy pages
 
     function addPage(Page page)
-        numberOfPages++
-        page.number = numberOfPages
-        pages.put(numberOfPages, page)
-        firstPage = pages.get(1)
-        lastPage = pages.get(numberOfPages)
+        this.numberOfPages++
+        page.number = this.numberOfPages
+        this.pages.put(this.numberOfPages, page)
+        this.firstPage = this.pages.get(1)
+        this.lastPage = this.pages.get(this.numberOfPages)
 
     /** this will not automatically refactor the list to remove blank spaces. Only remove last pages.*/
     function removePage(Page page)
-        pages.remove(page.number)
-        numberOfPages--
-        lastPage = pages.get(numberOfPages)
+        this.pages.remove(page.number)
+        this.numberOfPages--
+        if this.numberOfPages < 1
+            this.firstPage = null
+            this.lastPage = null
+        else
+            this.lastPage = this.pages.get(this.numberOfPages)
 
     function getPage(int pageNumber) returns Page
-        return pages.get(pageNumber)
+        return this.pages.get(pageNumber)
 
-    function addUnitUI(UnitUI ui)
-        lastPage.addItem(ui)
+    function addPassenger(Passenger passenger)
+        this.lastPage.addItem(passenger)
 
-    function removeUnitUI(UnitUI ui) returns int
-        return ui.page.removeItem(ui)
+    function removePassenger(Passenger passenger) returns int
+        return passenger.page.removeItem(passenger)
 
     function isEmpty() returns bool
-        if pages.get(1) == null
+        if this.pages.get(1) == null
             return true
         return false
 
@@ -61,52 +64,52 @@ public class Page
     int number
     int maxSize
     Book book
-    LinkedList<UnitUI> items
+    LinkedList<Passenger> items
 
     construct(Book whichBook)
-        items = new LinkedList<UnitUI>
-        number = 0
-        maxSize = whichBook.maxItemsPerPage
-        book = whichBook
+        this.items = new LinkedList<Passenger>
+        this.number = 0
+        this.maxSize = whichBook.maxItemsPerPage
+        this.book = whichBook
         whichBook.addPage(this)
 
     ondestroy
-        destroy items
+        destroy this.items
 
     /** if this current Page has reached its limit, a new page with a page number + 1 will be created, added to the same book, and returned.*/
-    function addItem(UnitUI ui) returns thistype
-        if items.size() < maxSize
-            items.push(ui)
-            ui.page = this
+    function addItem(Passenger passenger) returns thistype
+        if this.items.size() < this.maxSize
+            this.items.push(passenger)
+            passenger.page = this
         else
-            let newPage = new Page(book)
-            newPage.items.push(ui)
-            ui.page = newPage
+            let newPage = new Page(this.book)
+            newPage.items.push(passenger)
+            passenger.page = newPage
             return newPage
         return this
 
-    static function getNumFromItem(UnitUI ui) returns int
-        return ui.page.number
+    static function getNumFromItem(Passenger passenger) returns int
+        return passenger.page.number
 
     /** removes a frame from a Page and returns the number of that Page or the one before it if the Page becomes empty from that action. */
-    function removeItem(UnitUI ui) returns int
-        items.remove(ui)
-        ui.page = null
-        if items.isEmpty()
-            let num = number - 1
-            book.removePage(this)
+    function removeItem(Passenger passenger) returns int
+        this.items.remove(passenger)
+        passenger.page = null
+        if this.items.isEmpty()
+            let num = this.number - 1
+            this.book.removePage(this)
             destroy this
             return num
         else
-            for pgNum = number to book.numberOfPages
-                let currentPage = book.pages.get(pgNum)
-                let nextPage = book.pages.get(pgNum + 1)
+            for pgNum = this.number to this.book.numberOfPages
+                let currentPage = this.book.pages.get(pgNum)
+                let nextPage = this.book.pages.get(pgNum + 1)
                 if nextPage != null
                     while currentPage.items.size() < currentPage.maxSize and not nextPage.items.isEmpty()
-                        let ico = nextPage.items.dequeue()
-                        currentPage.items.push(ico)
-                        ico.page = currentPage
+                        let pass = nextPage.items.dequeue()
+                        currentPage.items.push(pass)
+                        pass.page = currentPage
                     if nextPage.items.isEmpty()
                         nextPage.book.removePage(nextPage)
                         destroy nextPage
-            return number
+            return this.number

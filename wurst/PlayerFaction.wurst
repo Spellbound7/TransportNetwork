@@ -12,16 +12,16 @@ init
 
         if GetPlayerRace(play) == RACE_HUMAN
             faction = new Faction()
-            //faction.flagPath = UI.waypointFlag // default
+            faction.flagPath = Abilities.aneuTarget // UI.rallyFlags
         else if GetPlayerRace(play) == RACE_ORC
             faction = new Faction()
-            faction.flagPath = UI.waypointFlag
+            faction.flagPath = Abilities.aneuTarget // UI.orcRallyFlag
         else if GetPlayerRace(play) == RACE_UNDEAD
             faction = new Faction()
-            faction.flagPath = UI.waypointFlag
+            faction.flagPath = Abilities.aneuTarget // UI.undeadRallyFlag
         else if GetPlayerRace(play) == RACE_NIGHTELF
             faction = new Faction()
-            faction.flagPath = UI.waypointFlag
+            faction.flagPath = Abilities.aneuTarget // UI.nightElfRallyFlag
         else
             faction = new Faction()
             
@@ -30,7 +30,7 @@ init
 
 public class Faction
 
-    string flagPath = UI.waypointFlag
+    string flagPath
     // music
     // announcer?
     // cursor???

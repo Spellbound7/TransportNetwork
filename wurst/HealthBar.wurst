@@ -35,58 +35,60 @@ public class HealthBar
     private static let barList = new LinkedList<thistype>
 
     framehandle hpBar
-    unit source
+    LinkedList<unit> assignments = new LinkedList<unit>
     bool isListed // prevents from having to search through a list all the time
-    player owner
 
-    construct(framehandle parentFrame, unit u, player play, real height, real width)
+    construct(framehandle parentFrame, real height, real width)
         hpBar = createSimpleFrame("MySimpleBar", parentFrame, 0)
         ..setTexture(Textures.human_statbar_color3, 0, false)
         ..setSize(width, height)
         ..setPoint(FRAMEPOINT_TOPLEFT, parentFrame, FRAMEPOINT_BOTTOMLEFT)
         ..hide()
-        source = u
-        owner = play
-        isListed = false
+        this.isListed = false
 
+    // this shouldn't be used at all tbh
     ondestroy
-        unlist()
-        hpBar.remove()
-        source = null
+        // hpBar.remove() // destroying framehandles can desync the game
+        this.hpBar.hide()
+        this.hpBar = null
 
     function update()
-        let percentage = source.getHP() / source.getMaxHP()
-        int red
-        int blue
-        int green
-        if percentage > .5
-            let newPer = (percentage-.5)/.5
-            red = ((HIGH_PEAK_RED * newPer) + HALF_RED).toInt()
-            green = ((HIGH_PEAK_GREEN * newPer) + HALF_GREEN).toInt()
-            blue = ((HIGH_PEAK_BLUE * newPer) + HALF_BLUE).toInt()
-        else
-            let newPer = percentage/.5
-            red = ((LOW_PEAK_RED * newPer) + EMPTY_RED).toInt()
-            green = ((LOW_PEAK_GREEN * newPer) + EMPTY_GREEN).toInt()
-            blue = ((LOW_PEAK_BLUE * newPer) + EMPTY_BLUE).toInt()
-        let barCol = color(red, green, blue)
-        hpBar.setVertexColor(BlzConvertColor(255, barCol.red, barCol.green, barCol.blue))
-        hpBar.setValue(percentage * 100.)
+        for u in this.assignments
+            let percentage = u.getHP() / u.getMaxHP()
+            int red
+            int blue
+            int green
+            if percentage > .5
+                let newPer = (percentage-.5)/.5
+                red = ((HIGH_PEAK_RED * newPer) + HALF_RED).toInt()
+                green = ((HIGH_PEAK_GREEN * newPer) + HALF_GREEN).toInt()
+                blue = ((HIGH_PEAK_BLUE * newPer) + HALF_BLUE).toInt()
+            else
+                let newPer = percentage/.5
+                red = ((LOW_PEAK_RED * newPer) + EMPTY_RED).toInt()
+                green = ((LOW_PEAK_GREEN * newPer) + EMPTY_GREEN).toInt()
+                blue = ((LOW_PEAK_BLUE * newPer) + EMPTY_BLUE).toInt()
+            let barCol = color(red, green, blue)
+            if localPlayer == u.getOwner()
+                this.hpBar.setVertexColor(BlzConvertColor(255, barCol.red, barCol.green, barCol.blue))
+                this.hpBar.setValue(percentage * 100.)
 
-    function unlist()
+    function unassign(unit u)
+        this.assignments.remove(u)
+        this.hpBar.hide(u.getOwner())
         if isListed
             barList.remove(this)
-            isListed = false
-            hpBar.hide()
+            this.isListed = false
             if barList.isEmpty()
                 clock.release()
 
-    function list()
+    function assign(unit u)
+        this.assignments.push(u)
+        this.hpBar.show(u.getOwner())
+        this.update()
         if not isListed
             barList.push(this)
-            isListed = true
-            hpBar.show(owner)
-            update()
+            this.isListed = true
             if barList.size() == 1
                 clock = getTimer()
                 clock.startPeriodic(INTERVAL, function callback)

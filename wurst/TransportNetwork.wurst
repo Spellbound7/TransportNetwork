@@ -161,14 +161,12 @@ package TransportNetwork
 
 import ChannelAbilityPreset
 import public SmartTrack
-import ClosureKeyPresses
 import ClosureFrames
 import PlayerFaction
 import InitCustomUI
-import EffectUtils
+import UnitIndexer
 import TimerUtils
 import HealthBar
-import MousePos
 import Assets
 import Orders
 import Book
@@ -185,14 +183,18 @@ LinkedList<unit> array selectionList
 LinkedList<Visa> array visaList
 
 // CONSTANTS
-@configurable constant ROWS_PER_PAGE = 2
-@configurable constant COLS_PER_PAGE = 9
+@configurable constant ROWS_PER_PAGE    = 2
+@configurable constant COLS_PER_PAGE    = 12
 
-@configurable constant ICON_HEIGHT = .0225
-@configurable constant ICON_WIDTH = .0225
+@configurable constant ICON_HEIGHT      = .0225
+@configurable constant ICON_WIDTH       = .0225
 
-@configurable constant ROW_GAP = .00375
-@configurable constant COL_GAP = .00455
+@configurable constant ROW_GAP          = .00375
+@configurable constant COL_GAP          = .00525
+
+@configurable constant NO_PAGE_STRING   = "--"
+
+@configurable constant RALLY_LINE_PATH  = "SPTL"
 
 constant HEALTH_BAR_H = .002
 constant HEALTH_BAR_W = ICON_WIDTH
@@ -202,9 +204,6 @@ constant WINDOW_WITDH = ICON_WIDTH * COLS_PER_PAGE + COL_GAP * (COLS_PER_PAGE - 
 constant WINDOW_X = .21
 constant WINDOW_Y = .14
 
-constant NETWORK_FRAME =    createFrame("FRAME", "NetworkFrame", GAME_UI, "", 0)..setSize(WINDOW_WITDH, WINDOW_HEIGHT) /*
-                        */..setAbsPoint(FRAMEPOINT_BOTTOMLEFT, WINDOW_X, WINDOW_Y)..hide()
-
 constant PAGE_SIZE_MAX = ROWS_PER_PAGE * COLS_PER_PAGE
 
 constant MISC_ICON_HEIGHT = WINDOW_HEIGHT * .33
@@ -213,13 +212,25 @@ constant PAGE_FRAME_OFFSET = -.00095
 
 real array ROW
 real array COL
+NetworkIcon array networkIcon
+
+int array currentPageNumber
+
+framehandle prevPageBtn
+framehandle nextPageBtn
+framehandle pageNumFrame
+framehandle pageNumDisplay
+framehandle unloadAbilBtn
+framehandle rallyBtn
+framehandle stopBtn
+
+constant NETWORK_FRAME = createFrame("FRAME", "NetworkFrame", GAME_UI, "", 0)..setSize(WINDOW_WITDH, WINDOW_HEIGHT)..setAbsPoint(FRAMEPOINT_BOTTOMLEFT, WINDOW_X, WINDOW_Y)..hide()
 
 
-
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*  TransportNetwork
-*/
+//================================================================================================================================
+//
+//      TRANSPORT NETWORK
+//
 public class TransportNetwork
 
     player owner                                // the master owner of the network. Use when updating visas in case of an alliance switch.
@@ -231,40 +242,40 @@ public class TransportNetwork
     bool markedForDestruction
 
     construct(player networkOwner)
-        listOfTerminals = new LinkedList<Terminal>
-        owner = networkOwner
-        visas = new HashMap<player, Visa>
-        lastTerminal = null
-        markedForDestruction = false
-        listOfVisas = new LinkedList<Visa>
-        visasToKill = new LinkedList<Visa>
+        this.listOfTerminals = new LinkedList<Terminal>
+        this.owner = networkOwner
+        this.visas = new HashMap<player, Visa>
+        this.lastTerminal = null
+        this.markedForDestruction = false
+        this.listOfVisas = new LinkedList<Visa>
+        this.visasToKill = new LinkedList<Visa>
         if networkOwner != null
             giveAccess(networkOwner)
 
     ondestroy
-        markedForDestruction = true
-        //let pos = lastTerminal.getPos()
+        this.markedForDestruction = true
+        //let pos = this.lastTerminal.getPos()
         for i = 0 to bj_MAX_PLAYER_SLOTS - 1
             let p = players[i]
-            if visas.has(p)
-                destroy visas.get(p)
-        destroy visas
-        if not listOfTerminals.isEmpty()
-            for terminal in listOfTerminals
+            if this.visas.has(p)
+                destroy this.visas.get(p)
+        destroy this.visas
+        if not this.listOfTerminals.isEmpty()
+            for terminal in this.listOfTerminals
                 removeTerminal(terminal)
-        destroy listOfTerminals
-        destroy listOfVisas
-        destroy visasToKill
-        owner = null
-        lastTerminal = null
+        destroy this.listOfTerminals
+        destroy this.listOfVisas
+        destroy this.visasToKill
+        this.owner = null
+        this.lastTerminal = null
 
     function addTerminal(Terminal terminal, Tracker track)
         if terminal.network != null
             terminal.network.removeTerminal(terminal)
         
-        listOfTerminals.push(terminal)
-        if listOfTerminals.size() == 1
-            lastTerminal = terminal
+        this.listOfTerminals.push(terminal)
+        if this.listOfTerminals.size() == 1
+            this.lastTerminal = terminal
         terminal.network = this
         terminal.tracker = track
         terminal.source.addAbility(terminal.loadAbil)
@@ -282,7 +293,7 @@ public class TransportNetwork
         terminal.trigOrder.addAction(function Terminal.onOrder)
                       
     function removeTerminal(Terminal terminal)
-        if listOfTerminals.has(terminal)
+        if this.listOfTerminals.has(terminal)
             terminal.source.removeAbility(terminal.loadAbil)
             terminal.source.removeAbility(terminal.unloadAbil)
             terminal.source.removeAbility(terminal.stopAbil)
@@ -294,47 +305,47 @@ public class TransportNetwork
                 terminal.trigOrder.destr()
                 terminal.trigOrder = null
             destroy terminal.tracker
-            if listOfTerminals.size() == 1
-                lastTerminal = terminal
-            listOfTerminals.remove(terminal)
+            if this.listOfTerminals.size() == 1
+                this.lastTerminal = terminal
+            this.listOfTerminals.remove(terminal)
 
     function giveAccess(player p)
-        if not visas.has(p)
+        if not this.visas.has(p)
             Visa visa = null
             // if a player is re-granted access to a network while their visa is being revoked, remove it from the list of visas to revoke and repurpose it.
-            if not visasToKill.isEmpty()
-                let itr = visasToKill.iterator()
+            if not this.visasToKill.isEmpty()
+                let itr = this.visasToKill.iterator()
                 while itr.hasNext() or visa == null
                     let vis = itr.next()
                     if vis.owner == p
                         visa = vis
-                        visasToKill.remove(visa)
-                        visas.put(p, visa)
-                        listOfVisas.push(visa)
+                        this.visasToKill.remove(visa)
+                        this.visas.put(p, visa)
+                        this.listOfVisas.push(visa)
                 itr.close()
             if visa == null
                 visa = new Visa(p, this)
-                visas.put(p, visa)
-                listOfVisas.push(visa)
+                this.visas.put(p, visa)
+                this.listOfVisas.push(visa)
 
     function revokeAccess(player p)
-        if p != owner // cannot revoke access to the owner of the network.
+        if p != this.owner // cannot revoke access to the owner of the network.
             let visa = visas.get(p)
             if visa != null
                 visa.empty()
-                listOfVisas.remove(visa)
-                visas.remove(p)
+                this.listOfVisas.remove(visa)
+                this.visas.remove(p)
 
     function hasAccess(player p) returns bool
-        return visas.has(p)
+        return this.visas.has(p)
 
     protected function getAccess(player p) returns Visa
-        return visas.get(p)
+        return this.visas.get(p)
 
     /** I've not tested this, but perhaps don't load a Terminal-unit in a Network */
     function loadUnit(unit u, Terminal terminal)
         let p = u.getOwner()
-        let visa = visas.get(p)
+        let visa = this.visas.get(p)
         if visa != null
             terminal.onLoad(u)
             visa.addUnit(u, terminal)
@@ -362,7 +373,7 @@ public class TransportNetwork
             else
                 if rally.target != terminal.source
                     pUnit.issueTargetOrderById(Orders.smart, rally.target)
-        pUnit.show()
+        // pUnit.show()
         terminal.onUnload(pUnit)
         passenger.visa.removePassenger(passenger)
 
@@ -373,8 +384,8 @@ public class TransportNetwork
 
     /** Unloads from a random Terminal in the network. */
     function unloadPassenger(Passenger passenger)
-        let i = GetRandomInt(0, listOfTerminals.size())
-        unloadPassenger(passenger, listOfTerminals.get(i))
+        let i = GetRandomInt(0, this.listOfTerminals.size())
+        unloadPassenger(passenger, this.listOfTerminals.get(i))
 
     function unloadAll(Terminal terminal, Visa visa)
         if not visa.listOfPassengers.isEmpty()
@@ -390,10 +401,10 @@ public class TransportNetwork
 
 
 
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*  Terminal
-*/
+//================================================================================================================================
+//
+//      TERMINAL
+//
 public abstract class Terminal
 
     protected bool arrivalState
@@ -418,23 +429,23 @@ public abstract class Terminal
     private static let inTransit = new HashMap<int, unit>
 
     construct(unit u, real loadInterval, real unloadInterval, int loadAbilityId, int unloadAbilityId, int stopAbilityId)
-        source = u
-        arrivalClock = null
-        departureClock = null
-        arrivalState = false
-        departureState = false
-        arrivalInterval = loadInterval
-        departureInterval = unloadInterval
+        this.source = u
+        this.arrivalClock = null
+        this.departureClock = null
+        this.arrivalState = false
+        this.departureState = false
+        this.arrivalInterval = loadInterval
+        this.departureInterval = unloadInterval
         localHash.put(u.getHandleId(), this)
-        visaListTemp = new LinkedList<Visa>
-        arrivalsList = new LinkedList<unit>
-        tracker = null
-        loadAbil = loadAbilityId
-        unloadAbil = unloadAbilityId
-        stopAbil = stopAbilityId
-        network = null      // will be set when connected to a network
-        trigCast = null     // created only when connected to a network
-        trigOrder = null    // created only when connected to a network
+        this.visaListTemp = new LinkedList<Visa>
+        this.arrivalsList = new LinkedList<unit>
+        this.tracker = null
+        this.loadAbil = loadAbilityId
+        this.unloadAbil = unloadAbilityId
+        this.stopAbil = stopAbilityId
+        this.network = null      // will be set when connected to a network
+        this.trigCast = null     // created only when connected to a network
+        this.trigOrder = null    // created only when connected to a network
         rally = new HashMap<player, TerminalRally>
         for i = 0 to bj_MAX_PLAYER_SLOTS - 1
             let play = players[i]
@@ -445,41 +456,59 @@ public abstract class Terminal
         let terminal = Terminal.get(u)
         if terminal != null
             let net = terminal.network
-            let play = EventData.getTriggerPlayer() //returns the owner of the selected unit when called from EVENT_UNIT_SELECTED
+            let play = EventData.getTriggerPlayer() //returns the player that selected the unit from EVENT_UNIT_SELECTED
             if net != null
                 let visa = net.getAccess(play)
                 if visa != null
                     let id = play.getId()
                     if EventData.getEventId() == EVENT_PLAYER_UNIT_SELECTED
+                        // print("|cff00ff40SELECTION|r")
                         if not selectedTerminals[id].has(terminal)
+                            // Log.info("this terminal is not currently selected. Adding to selectedTerminals.")
                             selectedTerminals[id].push(terminal)
                         if selectedTerminals[id].size() == 1
+                            // Log.info("one terminal selected. focusing...")
                             focusTerminal[id] = terminal
                         else
+                            // Log.info("multiple terminals selected. unfocusing...")
                             focusTerminal[id] = null
-                        if not selectedVisas[id].has(visa)
+                        if not selectedVisas[id].has(visa) // why does this not always work?
+                            // Log.info("visa not listed. pushing to list...")
                             selectedVisas[id].push(visa)
                         if selectedVisas[id].size() == 1
+                            // Log.info("one visa selected.")
                             focusVisa[id] = visa
                             focusNetwork[id] = visa.network
-                            if visa.manifest != null
-                                if isNetworkVisible[id]
-                                    play.hideNetwork(visa)
-                                    play.showNetwork(visa, currentPageNumber[id])
-                                else
-                                    play.showNetwork(visa, 1)
-                        else
                             if isNetworkVisible[id]
+                                // Log.info("hide-show netowrk")
+                                play.hideNetwork(visa)
+                                play.showNetwork(visa, currentPageNumber[id])
+                            else
+                                // Log.info("show network.")
+                                play.showNetwork(visa, 1)
+                        else
+                            // Log.info("multiple visas selected.")
+                            if isNetworkVisible[id]
+                                // Log.info("hide network.")
                                 play.hideNetwork(focusVisa[id])
+                            // else
+                            //     Log.info("No action.")
+                            
                             focusNetwork[id] = null
                             focusVisa[id] = null
+                        // show rally flag
+                        terminal.rally.get(play).show()
                     else
                         terminal.deselect(play, id, visa)
     
     /** A unit that was selected does not fire a EVENT_UNIT_DESELECTED on death. This is called manually on Terminal destruction if it was currently being selected.*/
     private function deselect(player play, int id, Visa visa)
+        // print("|cffff004cDESELECTION|r")
+        // hide rally flag
+        this.rally.get(play).hide()
         selectedTerminals[id].remove(this)
         if selectedTerminals[id].isEmpty()
+            // Log.info("no selected terminals")
             selectedVisas[id].clear()
             if isNetworkVisible[id]
                 play.hideNetwork(focusVisa[id])
@@ -488,53 +517,61 @@ public abstract class Terminal
             focusVisa[id] = null
             currentPageNumber[id] = 0
         else
+            // Log.info("Terminals still selected")
             // if selectedVisas is greater than 1, there's a possibility that the deselected Terminal
             // was the one with the different Visa. Iterate through selectedTerminals[id] to find out.
             if selectedVisas[id].size() > 1
-                selectedVisas[id].clear()
+                // Log.info("More than 1 visa selected. clearing for iteration...")
+                selectedVisas[id].clear() // clear the list and re-add the visas
                 for t in selectedTerminals[id]
-                    let vis = t.network.getAccess(t.network.owner)
+                    let vis = t.network.getAccess(play)
                     if not selectedVisas[id].has(vis)
                         selectedVisas[id].push(vis)
                 if selectedVisas[id].size() == 1
+                    // Log.info("post iteration. Only 1 visa selected for " + play.getName())
                     focusVisa[id] = selectedVisas[id].getFirst()
                     focusNetwork[id] = visa.network
                     if selectedTerminals[id].size() == 1
+                        // Log.info("only 1 terminal selected. focusing...")
                         focusTerminal[id] = selectedTerminals[id].getFirst()
-                    else
+                    // else
+                        // Log.info("more than 1 selected terminal. unfocusing...")
                         focusTerminal[id] = null
-                    if focusVisa[id].manifest != null
-                        play.showNetwork(focusVisa[id], 1)
+                    play.hideNetwork(focusVisa[id])
+                    play.showNetwork(focusVisa[id], 1)
+                    // Log.info("hide-show network page 1")
                 else
-                    if isNetworkVisible[id]
-                        play.hideNetwork(focusVisa[id])
+                    // Log.info("post iteration. More than 1 visa selected. Hiding network...")
                     focusVisa[id] = null
                     focusNetwork[id] = null
+                    if isNetworkVisible[id]
+                        play.hideNetwork(focusVisa[id])
             else if selectedVisas[id].size() == 1
+                // Log.info("1 visa selected for " + play.getName())
                 focusVisa[id] = selectedVisas[id].getFirst()
                 focusNetwork[id] = visa.network
                 if selectedTerminals[id].size() == 1
                     focusTerminal[id] = selectedTerminals[id].getFirst()
                 else
                     focusTerminal[id] = null
-                if focusVisa[id].manifest != null
-                    play.hideNetwork(focusVisa[id])
-                    play.showNetwork(focusVisa[id], currentPageNumber[id])
+                play.hideNetwork(focusVisa[id])
+                play.showNetwork(focusVisa[id], currentPageNumber[id])
+                // Log.info("hide-show network page " + currentPageNumber[id].toString())
 
     ondestroy
-        for visa in network.listOfVisas
+        for visa in this.network.listOfVisas
             let play = visa.owner
             let id = play.getId()
             if selectedTerminals[id] != null
                 if selectedTerminals[id].has(this)
-                    this.deselect(play, id, network.getAccess(play))
+                    this.deselect(play, id, this.network.getAccess(play))
         cancelAllTransit()
-        network.removeTerminal(this)
-        localHash.remove(source.getHandleId())
+        this.network.removeTerminal(this)
+        localHash.remove(this.source.getHandleId())
         destroy visaListTemp
         destroy arrivalsList
-        network = null
-        source = null
+        this.network = null
+        this.source = null
         for i = 0 to bj_MAX_PLAYER_SLOTS - 1
             destroy rally.get(players[i])
         destroy rally
@@ -562,13 +599,13 @@ public abstract class Terminal
         return false
 
     function cancelAllTransit()
-        if arrivalState
-            arrivalClock.release()
-            arrivalState = false
-        if departureState
-            departureClock.release()
-            departureState = false
-        tracker.interruptAllTracking()
+        if this.arrivalState
+            this.arrivalClock.release()
+            this.arrivalState = false
+        if this.departureState
+            this.departureClock.release()
+            this.departureState = false
+        this.tracker.interruptAllTracking()
         if not arrivalsList.isEmpty()
             for arrival in arrivalsList
                 unqueueArrival(arrival)
@@ -614,13 +651,13 @@ public abstract class Terminal
         if initArrivalClock() // returns true if there already is a queue
             let id = arrival.getHandleId()
             if not inTransit.has(id)
-                arrivalsList.push(arrival)
+                this.arrivalsList.push(arrival)
                 inTransit.put(id, this.source)
         else
-            network.loadUnit(arrival, this)
+            this.network.loadUnit(arrival, this)
 
     protected function unqueueArrival(unit arrival)
-        arrivalsList.remove(arrival)
+        this.arrivalsList.remove(arrival)
         inTransit.remove(arrival.getHandleId())
 
     static function isUnitInTransitAt(unit u, unit terminalSource) returns bool
@@ -638,11 +675,11 @@ public abstract class Terminal
                 terminal.queueArrival(arrival)
 
     private function initArrivalClock() returns bool
-        if not arrivalState
-            arrivalState = true
-            arrivalClock = getTimer()
-            arrivalClock.setData(this castTo int)
-            arrivalClock.startPeriodic(arrivalInterval, function arrivals)
+        if not this.arrivalState
+            this.arrivalState = true
+            this.arrivalClock = getTimer()
+            this.arrivalClock.setData(this castTo int)
+            this.arrivalClock.startPeriodic(arrivalInterval, function arrivals)
             return false
         return true
 
@@ -658,8 +695,8 @@ public abstract class Terminal
             terminal.endArrivals()
 
     protected function endArrivals()
-        arrivalClock.release()
-        arrivalState = false
+        this.arrivalClock.release()
+        this.arrivalState = false
 
     /*
         DEPARTURES
@@ -667,16 +704,16 @@ public abstract class Terminal
     /** If amount is 0 (zero), the Terminal will unload Passengers for as long as there are to unload or until ordered to stop. */
     protected function queueDeparture(Visa visa, int amount)
         visa.unloadCount = amount // if amount is 0, the Terminal will keep unloading until the visa's passenger list is empty or is ordered to stop.
-        visaListTemp.push(visa)
+        this.visaListTemp.push(visa)
         if not initDepartureClock() // this returns false if departureState is false. That means there's no queue yet, so it's safe to unload a Passenger immediately.
             network.unloadPassenger(visa.listOfPassengers.getFirst(), this) // unloadPassenger eventually removes the passenger from the visa's passenger list
 
     private function initDepartureClock() returns bool
-        if not departureState
-            departureState = true
-            departureClock = getTimer()
-            departureClock.setData(this castTo int)
-            departureClock.startPeriodic(departureInterval, function departures)
+        if not this.departureState
+            this.departureState = true
+            this.departureClock = getTimer()
+            this.departureClock.setData(this castTo int)
+            this.departureClock.startPeriodic(departureInterval, function departures)
             return false
         return true
 
@@ -704,19 +741,19 @@ public abstract class Terminal
 
     protected function endDepartures(Visa visa)
         visa.unloadCount = 0
-        visaListTemp.remove(visa)
+        this.visaListTemp.remove(visa)
         if network.visasToKill.has(visa)
             network.visasToKill.remove(visa)
             destroy visa
-        if visaListTemp.isEmpty()
+        if this.visaListTemp.isEmpty()
             finish()
 
     /** this function will only be called if departureState is false so no point in checking it */
     protected function queueDepartureSingle(Passenger passenger)
-        departureState = true
-        departureClock = getTimer()
-        departureClock.setData(this castTo int)
-        departureClock.start(departureInterval, function departureResetClock) // prevents spam-clicking unit icons to quickly unload them
+        this.departureState = true
+        this.departureClock = getTimer()
+        this.departureClock.setData(this castTo int)
+        this.departureClock.start(departureInterval, function departureResetClock) // prevents spam-clicking unit icons to quickly unload them
         network.unloadPassenger(passenger, this)
     
     private static function departureResetClock()
@@ -724,9 +761,13 @@ public abstract class Terminal
         terminal.finish()
 
     protected function finish()
-        departureClock.release()
-        departureState = false
+        this.departureClock.release()
+        this.departureState = false
 
+//================================================================================================================================
+//
+//      TERMINAL RALLY
+//
 // for player-specific rally points
 class TerminalRally
 
@@ -736,6 +777,9 @@ class TerminalRally
     player owner
     effect flag = null
     string flagPath
+    timer clock
+    bool timerOn
+    lightning line = null
 
     construct(player owner, unit rallySource)
         this.owner = owner
@@ -750,33 +794,71 @@ class TerminalRally
     function setRallyPoint(vec2 pos)
         moveFlag(null, pos)
 
-    private function moveFlag(unit newTarget, vec2 newPos)
-        if this.flag != null        // since the flag could be attached to a target, it's simpler to just destroy and
-            this.flag.destrHidden() // remake it every time rather than check whether it should be moved or recreated
-        if newTarget == null
-            if localPlayer == this.owner
-                this.flag = addEffect(this.flagPath, newPos)
-                this.flag.setColorByPlayer(this.owner)
-        else
-            if localPlayer == this.owner
-                this.flag = addEffect(this.flagPath, newTarget, SpecialAttachmentPoints.firstSprite)
-                this.flag.setColorByPlayer(this.owner)
-        this.target = newTarget
-        this.point = newPos
+    private static function updateLine()
+        let tr = GetExpiredTimer().getData() castTo thistype
+        if tr.target != null
+            if localPlayer == tr.owner
+                tr.line.move(true, tr.source.getPos(), tr.target.getPos())
 
-    ondestroy
-        this.source = null
-        this.target = null
-        if this.flag != null
-            this.flag.destr()
+    function hide()
+        if this.timerOn
+            this.timerOn = false
+            this.clock.release()
+        if this.line != null
+            this.line.destr()
+            this.line = null
+        if this.flag != null    // since the flag could be attached to a target, it's simpler to just destroy and
+            this.flag.destr()   // remake it every time rather than check whether it should be moved or recreated
             this.flag = null
 
+    function show()
+        this.hide()
+        let startPos = this.source.getPos()
+        var path = ""
+        if this.target == null
+            if localPlayer == this.owner
+                path = this.flagPath
+                this.line = addLightning(RALLY_LINE_PATH, true, startPos, this.point)
+            this.flag = addEffect(path, this.point)
+            this.flag.setColorByPlayer(this.owner)
+        else
+            if localPlayer == this.owner
+                path = this.flagPath
+            this.flag = addEffect(path, this.target, AttachmentPoints.head)
+            this.flag.setColorByPlayer(this.owner)
+
+            if this.target != this.source
+                if localPlayer == this.owner
+                    this.line = addLightning(RALLY_LINE_PATH, true, startPos, this.point)
+                this.timerOn = true
+                this.clock = getTimer()..setData(this castTo int)
+                this.clock.startPeriodic(ANIMATION_PERIOD, function updateLine) 
+
+    private function moveFlag(unit newTarget, vec2 newPos)
+        this.target = newTarget
+        this.point = newPos
+        this.show()
+
+    static function make(player owner, vec2 pos, unit rallyUnit)
+        for terminal in selectedTerminals[owner.getId()]
+            if rallyUnit == null
+                // Log.info("rallyUnit is null")
+                terminal.setRallyPoint(owner, pos)
+            else
+                // Log.info("rallyUnit is NOT null")
+                terminal.setRallyUnit(owner, rallyUnit)
+
+    ondestroy
+        this.hide()
+        this.source = null
+        this.target = null
 
 
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*  Visa
-*/
+
+//================================================================================================================================
+//
+//      VISA
+//
 class Visa
 
     player owner
@@ -786,11 +868,11 @@ class Visa
     LinkedList<Passenger> listOfPassengers  // the units that are loaded into the cargo are referenced in here
 
     construct(player p, TransportNetwork net)
-        owner = p
-        network = net
-        manifest = null
-        unloadCount = 0
-        listOfPassengers = new LinkedList<Passenger>
+        this.owner = p
+        this.network = net
+        this.manifest = new Book(PAGE_SIZE_MAX)
+        this.unloadCount = 0
+        this.listOfPassengers = new LinkedList<Passenger>
         let id = p.getId()
         if visaList[id] == null
             visaList[id] = new LinkedList<Visa>
@@ -806,12 +888,11 @@ class Visa
             trigSelect[id].addAction(function Terminal.onSelectDeselect)
     
     ondestroy
-        if not listOfPassengers.isEmpty()
-            for p in listOfPassengers
+        if not this.listOfPassengers.isEmpty()
+            for p in this.listOfPassengers
                 p.source.kill()
-        destroy listOfPassengers
-        if manifest != null
-            destroy manifest
+        destroy this.listOfPassengers
+        destroy this.manifest
         let id = owner.getId()
         visaList[id].remove(this)
         visaCount[id]--
@@ -820,16 +901,16 @@ class Visa
         if visaList[id].isEmpty()
             destroy selectedVisas[id]
             destroy selectedTerminals[id]
-            owner.hideNetwork(focusVisa[id])
+            this.owner.hideNetwork(focusVisa[id])
             focusVisa[id] = null
             focusNetwork[id] = null
             focusTerminal[id] = null
     
     /** when a player's access is revoked from a network, this function empties it of the player's units and destroys the visa when done.*/
     protected function empty()
-        if not listOfPassengers.isEmpty()
-            if not network.listOfTerminals.isEmpty()
-                let cList = network.listOfTerminals.iterator()
+        if not this.listOfPassengers.isEmpty()
+            if not this.network.listOfTerminals.isEmpty()
+                let cList = this.network.listOfTerminals.iterator()
                 Terminal terminal
                 while cList.hasNext()
                     terminal = cList.next()
@@ -839,51 +920,56 @@ class Visa
         
     /** add a unit to a network, isolated from other player's own units inside it's own 'visa'. Unit's become Passengers once loaded.*/
     function addUnit(unit u, Terminal terminal)
-        listOfPassengers.push(new Passenger(u, this, terminal))
+        this.listOfPassengers.push(new Passenger(u, this, terminal))
         u.hide()
 
     /** Units cannot be removed from the network. Instead, their Passenger instance must be removed. This is to avoid unnecessary checks and errors.*/
     function removePassenger(Passenger passenger)
-        listOfPassengers.remove(passenger)
+        this.listOfPassengers.remove(passenger)
         destroy passenger
 
 
 
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*  Passenger
-*/
-class Passenger
+//================================================================================================================================
+//
+//      PASSENGER
+//
+public class Passenger
 
     Visa visa
-    trigger trig
+    Page page
+    string iconPath
+    string iconPathDis
     unit source
     player owner
-    UnitUI unitUI
     Terminal entranceTerminal // if the passenger unit dies inside the network, it will exit via this network.
     TransportNetwork network
+    NetworkIcon netIcon = null
     private static let localHash = new HashMap<int, thistype>
 
     construct(unit u, Visa _visa, Terminal terminal)
         // create framehandle and stuff
-        unitUI = new UnitUI(u, _visa)
-        network = _visa.network
-        entranceTerminal = terminal
-        visa = _visa
-        source = u
-        owner = u.getOwner()
-        localHash.put(u.getHandleId(), this)
-        localHash.put(unitUI.icon.getHandleId(), this)
-        trig = CreateTrigger()
-        trig.registerFrameEvent(unitUI.icon, FRAMEEVENT_CONTROL_CLICK)
-        trig.addAction(function onClick)
+        this.network = _visa.network
+        this.entranceTerminal = terminal
+        this.visa = _visa
+        this.source = u
+        this.owner = u.getOwner()
+        this.iconPath = getAbilityIcon(u.getTypeId())
+        this.iconPathDis = iconPath.substring(iconPath.indexOf("BTN"))
 
-    static function onClick()
-        let id = GetTriggerPlayer().getId()
-        if focusTerminal[id] != null
-            let passenger = localHash.get(BlzGetTriggerFrame().getHandleId())
-            if not focusTerminal[id].departureState // only allow unloading via icon-clicking if there is no departure queue
-                focusTerminal[id].queueDepartureSingle(passenger)
+        if _visa.manifest.isEmpty()
+            this.page = new Page(_visa.manifest)
+        _visa.manifest.addPassenger(this)
+
+        let id = this.owner.getId()
+        if focusVisa[id] == _visa
+            if isNetworkVisible[id]
+                this.owner.hideNetwork(_visa)
+            else
+                currentPageNumber[id] = 1
+            this.owner.showNetwork(_visa, currentPageNumber[id])
+
+        localHash.put(u.getHandleId(), this)
 
     static function get(unit u) returns thistype
         return localHash.get(u.getHandleId())
@@ -892,20 +978,26 @@ class Passenger
         return localHash.has(u.getHandleId())
 
     ondestroy
-        localHash.remove(unitUI.icon.getHandleId())
         localHash.remove(source.getHandleId())
-        destroy unitUI
-        network = null
-        visa = null
-        source = null
-        trig.destr()
-        trig = null
+        let play = this.source.getOwner()
+        let id = play.getId()
+        play.hideNetwork(this.visa)
+        let pageNum = this.visa.manifest.removePassenger(this)
+        currentPageNumber[id] = pageNum
+        if focusVisa[id] == this.visa
+            play.showNetwork(this.visa, pageNum)
+        if this.netIcon != null
+            this.netIcon.unassign(this)
+        this.source.show()
+        this.network = null
+        this.visa = null
+        this.source = null
 
 
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
-/*  Initialisations
-*/
+//================================================================================================================================
+//
+//      INIT
+//
 init
     registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER, function trackOrders)
     registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER, function trackOrders)
@@ -969,288 +1061,241 @@ public constant NETWORK_STOP_UNLOAD_ABIL_ID = compiletime(ABIL_ID_GEN.next())
 /*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*----*
 /*  Icon grid for network cargo display
 */
-int array currentPageNumber
-RallyFlagMouse array rallyMode
-
-framehandle prevPageBtn
-framehandle nextPageBtn
-framehandle pageNumFrame
-framehandle pageNumDisplay
-framehandle unloadAbilBtn
-framehandle rallyBtn
-framehandle stopBtn
-
 init
     initUI()
 
-    prevPageBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-    ..setSize(MISC_ICON_WITDH, MISC_ICON_HEIGHT)
-    ..setPoint(FRAMEPOINT_TOPLEFT, NETWORK_FRAME, FRAMEPOINT_TOPRIGHT, COL_GAP, 0.)
-    getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNReplay_SpeedUp, 0, false)
-    getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNReplay_SpeedUp, 0, false)
-    getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNReplay_SpeedUp, 0, false)
+    // creating framehandles on init can be weird because #JustWarcraft3Things #FML #IFeelOld
+    nullTimer() -> 
 
-    nextPageBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-    ..setSize(MISC_ICON_WITDH, MISC_ICON_HEIGHT)
-    ..setPoint(FRAMEPOINT_BOTTOMLEFT, NETWORK_FRAME, FRAMEPOINT_BOTTOMRIGHT, COL_GAP, 0.)
-    getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNReplay_SpeedDown, 0, false)
-    getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNReplay_SpeedDown, 0, false)
-    getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNReplay_SpeedDown, 0, false)
+        prevPageBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        ..setSize(MISC_ICON_WITDH, MISC_ICON_HEIGHT)
+        ..setPoint(FRAMEPOINT_TOPLEFT, NETWORK_FRAME, FRAMEPOINT_TOPRIGHT, COL_GAP, 0.)
+        getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNReplay_SpeedUp, 0, false)
+        getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNReplay_SpeedUp, 0, false)
+        getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNReplay_SpeedUp, 0, false)
 
-    pageNumFrame = createFrame("SimpleTextSmall", NETWORK_FRAME, 0, 0)..setSize(.018, .015)
-    ..setPoint(FRAMEPOINT_LEFT, NETWORK_FRAME, FRAMEPOINT_RIGHT, COL_GAP + PAGE_FRAME_OFFSET, 0.)
+        nextPageBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        ..setSize(MISC_ICON_WITDH, MISC_ICON_HEIGHT)
+        ..setPoint(FRAMEPOINT_BOTTOMLEFT, NETWORK_FRAME, FRAMEPOINT_BOTTOMRIGHT, COL_GAP, 0.)
+        getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNReplay_SpeedDown, 0, false)
+        getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNReplay_SpeedDown, 0, false)
+        getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNReplay_SpeedDown, 0, false)
 
-    pageNumDisplay = getFrame("SimpleTextSmallValue", 0)..setText("0/0")
-    
-    stopBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-    ..setSize(ICON_HEIGHT, ICON_WIDTH)
-    ..setPoint(FRAMEPOINT_TOPLEFT, prevPageBtn, FRAMEPOINT_TOPRIGHT, COL_GAP, 0.)
-    getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNStop, 0, false)
-    getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNStop, 0, false)
-    getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNStop, 0, false)
+        pageNumFrame = createFrame("SimpleTextSmall", NETWORK_FRAME, 0, 0)..setSize(.018, .015)
+        ..setPoint(FRAMEPOINT_LEFT, NETWORK_FRAME, FRAMEPOINT_RIGHT, COL_GAP + PAGE_FRAME_OFFSET, 0.)
 
-    unloadAbilBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-    ..setSize(ICON_HEIGHT, ICON_WIDTH)
-    ..setPoint(FRAMEPOINT_BOTTOMLEFT, nextPageBtn, FRAMEPOINT_BOTTOMRIGHT, COL_GAP, 0.)
-    getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNUnLoad, 0, false)
-    getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNUnLoad, 0, false)
-    getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNUnLoad, 0, false)
-
-    rallyBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-    ..setSize(ICON_HEIGHT, ICON_WIDTH)
-    ..setPoint(FRAMEPOINT_BOTTOMLEFT, stopBtn, FRAMEPOINT_BOTTOMRIGHT, COL_GAP * 3, 0.)
-    getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNRallyPoint, 0, false)
-    getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNRallyPoint, 0, false)
-    getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNRallyPoint, 0, false)
-
-    // rows start from the top and move down
-    let row = (ICON_HEIGHT + ROW_GAP)
-    let rowInc = ICON_HEIGHT + ROW_GAP
-    for i = 1 to ROWS_PER_PAGE
-        ROW[i] = row - rowInc * i
+        pageNumDisplay = getFrame("SimpleTextSmallValue", 0)..setText("0/0")
         
-    // columns start from the left and move right
-    let col = -(ICON_WIDTH + COL_GAP)
-    let colInc = (ICON_WIDTH + COL_GAP)
-    for i = 1 to COLS_PER_PAGE
-        COL[i] = col + colInc * i
+        stopBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        ..setSize(ICON_HEIGHT, ICON_WIDTH)
+        ..setPoint(FRAMEPOINT_TOPLEFT, prevPageBtn, FRAMEPOINT_TOPRIGHT, COL_GAP, 0.)
+        getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNStop, 0, false)
+        getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNStop, 0, false)
+        getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNStop, 0, false)
 
-    // add events for page-switch buttons
-    prevPageBtn.onClick() ->
-        let p = GetTriggerPlayer()
-        let id = p.getId()
-        let visa = focusVisa[id]
-        p.hideNetwork(visa)
-        currentPageNumber[id]--
-        if currentPageNumber[id] < 1
-            currentPageNumber[id] = visa.manifest.lastPage.number
-        p.showNetwork(visa, currentPageNumber[id])
+        unloadAbilBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        ..setSize(ICON_HEIGHT, ICON_WIDTH)
+        ..setPoint(FRAMEPOINT_BOTTOMLEFT, nextPageBtn, FRAMEPOINT_BOTTOMRIGHT, COL_GAP, 0.)
+        getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNUnLoad, 0, false)
+        getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNUnLoad, 0, false)
+        getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNUnLoad, 0, false)
 
-    nextPageBtn.onClick() ->
-        let p = GetTriggerPlayer()
-        let id = p.getId()
-        let visa = focusVisa[id]
-        p.hideNetwork(visa)
-        currentPageNumber[id]++
-        if currentPageNumber[id] > visa.manifest.lastPage.number
-            currentPageNumber[id] = 1
-        p.showNetwork(visa, currentPageNumber[id])
+        // rallyBtn = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        // ..setSize(ICON_HEIGHT, ICON_WIDTH)
+        // ..setPoint(FRAMEPOINT_BOTTOMLEFT, stopBtn, FRAMEPOINT_BOTTOMRIGHT, COL_GAP * 3, 0.)
+        // getFrame("MenuItemButtonBackdrop", 0).setTexture(Icons.bTNRallyPoint, 0, false)
+        // getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(Icons.bTNRallyPoint, 0, false)
+        // getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(Icons.dISBTNRallyPoint, 0, false)
 
-    // add events for unload all/stop buttons
-    stopBtn.onClick() ->
-        let id = GetTriggerPlayer().getId()
-        for terminal in selectedTerminals[id]
-            terminal.source.issueImmediateOrderById(Orders.stop)
+        // rows start from the top and move down
+        let row = (ICON_HEIGHT + ROW_GAP)
+        let rowInc = ICON_HEIGHT + ROW_GAP
+        for i = 1 to ROWS_PER_PAGE
+            ROW[i] = row - rowInc * i
+            
+        // columns start from the left and move right
+        let col = -(ICON_WIDTH + COL_GAP)
+        let colInc = (ICON_WIDTH + COL_GAP)
+        for i = 1 to COLS_PER_PAGE
+            COL[i] = col + colInc * i
 
-    unloadAbilBtn.onClick() ->
-        let id = GetTriggerPlayer().getId()
-        for terminal in selectedTerminals[id]
-            if not terminal.visaListTemp.has(focusVisa[id])
-                terminal.network.unloadAll(terminal, focusVisa[id])
+        var iconIndex = 0
+        for y = 1 to ROWS_PER_PAGE
+            for x = 1 to COLS_PER_PAGE
+                iconIndex++
+                networkIcon[iconIndex] = new NetworkIcon(COL[x], ROW[y])
 
-    rallyBtn.onClick() ->
-        let owner = GetTriggerPlayer()
-        let id = owner.getId()
-        if rallyMode[id] == null
-            rallyMode[id] = new RallyFlagMouse(owner, id)
-        
-    EventListener.add(EVENT_PLAYER_MOUSE_DOWN) ->
-        let play = GetTriggerPlayer()
-        let id = play.getId()
-        if rallyMode[id] != null
-            destroy rallyMode[id]
-            rallyMode[id] = null
-            if BlzGetTriggerPlayerMouseButton() == MOUSE_BUTTON_TYPE_LEFT
-                for terminal in selectedTerminals[id]
-                    unit mouseFocusUnit = null
-                    if localPlayer == play
-                        mouseFocusUnit = BlzGetMouseFocusUnit()
-                    if mouseFocusUnit != null
-                        terminal.setRallyUnit(play, mouseFocusUnit)
-                        if terminal.source.getOwner() == play
-                            terminal.source.issueTargetOrderById(OrderIds.setrally, mouseFocusUnit)
+        // add events for page-switch buttons
+        prevPageBtn.onClick() ->
+            let p = GetTriggerPlayer()
+            let id = p.getId()
+            let visa = focusVisa[id]
+            p.hideNetwork(visa)
+            currentPageNumber[id]--
+            if currentPageNumber[id] < 1
+                currentPageNumber[id] = visa.manifest.lastPage.number
+            p.showNetwork(visa, currentPageNumber[id])
+
+        nextPageBtn.onClick() ->
+            let p = GetTriggerPlayer()
+            let id = p.getId()
+            let visa = focusVisa[id]
+            p.hideNetwork(visa)
+            currentPageNumber[id]++
+            if currentPageNumber[id] > visa.manifest.lastPage.number
+                currentPageNumber[id] = 1
+            p.showNetwork(visa, currentPageNumber[id])
+
+        // add events for unload all/stop buttons
+        stopBtn.onClick() ->
+            let id = GetTriggerPlayer().getId()
+            for terminal in selectedTerminals[id]
+                terminal.source.issueImmediateOrderById(Orders.stop)
+
+        unloadAbilBtn.onClick() ->
+            let id = GetTriggerPlayer().getId()
+            for terminal in selectedTerminals[id]
+                if not terminal.visaListTemp.has(focusVisa[id])
+                    terminal.network.unloadAll(terminal, focusVisa[id])
+
+        let syncListener = CreateTrigger()
+        for i = 0 to bj_MAX_PLAYER_SLOTS
+            BlzTriggerRegisterPlayerSyncEvent(syncListener, players[i], "U:", false)
+            BlzTriggerRegisterPlayerSyncEvent(syncListener, players[i], "P:", false)
+        syncListener.addAction() ->
+            let prefix = BlzGetTriggerSyncPrefix()
+            if prefix == "U:"
+                let id = BlzGetTriggerSyncData().toInt()
+                let u = id castTo UnitIndex.getUnit()
+                TerminalRally.make(GetTriggerPlayer(), ZERO2, u)
+            else if prefix == "P:"
+                let sender = GetTriggerPlayer()
+                let data = BlzGetTriggerSyncData() // Data now contains "x:y"
+                let separatorIndex = data.indexOf(":")
+                if separatorIndex > 0 and separatorIndex < data.length() - 1
+                    let xString = data.substring(0, separatorIndex)
+                    let yString = data.substring(separatorIndex + 1)
+                    let clickX = xString.toReal()
+                    let clickY = yString.toReal()
+                    let clickPos = vec2(clickX, clickY)
+                    // Pass the parsed position and null for unit target
+                    TerminalRally.make(sender, clickPos, null)
+
+        EventListener.add(EVENT_PLAYER_MOUSE_DOWN) ->
+            let triggerPlayer = GetTriggerPlayer()
+            if BlzGetTriggerPlayerMouseButton() == MOUSE_BUTTON_TYPE_RIGHT
+                if localPlayer == triggerPlayer
+                    let u = BlzGetMouseFocusUnit()
+                    if u != null
+                        BlzSendSyncData("U:", I2S(u.getIndex()))
                     else
-                        let mousePos = EventData.getMouseWorldPos()
-                        terminal.setRallyPoint(play, mousePos)
-                        if terminal.source.getOwner() == play
-                            terminal.source.issuePointOrderById(OrderIds.setrally, mousePos)
+                        let dataString = R2S(BlzGetTriggerPlayerMouseX()) + ":" + R2S(BlzGetTriggerPlayerMouseY())
+                        BlzSendSyncData("P:", dataString)
 
-    onKeyPress(OSKEY_ESCAPE) () ->
-        let id = GetTriggerPlayer().getId()
-        if rallyMode[id] != null
-            destroy rallyMode[id]
-            rallyMode[id] = null
-
-    // Passenger and Terminal death
-    EventListener.add(EVENT_PLAYER_UNIT_DEATH) -> 
-        let u = EventData.getTriggerUnit()
-        let terminal = Terminal.get(u)
-        if terminal != null
-            destroy terminal
-        else
-            let passenger = Passenger.get(u)
-            if passenger != null
-                if passenger.entranceTerminal == null
-                    if passenger.entranceTerminal.source == null
-                        passenger.network.unloadPassenger(passenger, vec2(0., 0.))
+        // Passenger and Terminal death
+        EventListener.add(EVENT_PLAYER_UNIT_DEATH) -> 
+            let u = EventData.getTriggerUnit()
+            let terminal = Terminal.get(u)
+            if terminal != null
+                destroy terminal
+            else
+                let passenger = Passenger.get(u)
+                if passenger != null
+                    if passenger.entranceTerminal == null
+                        if passenger.entranceTerminal.source == null
+                            passenger.network.unloadPassenger(passenger, vec2(0., 0.))
+                        else
+                            passenger.network.unloadPassenger(passenger)
                     else
-                        passenger.network.unloadPassenger(passenger)
-                else
-                    if passenger.entranceTerminal.source == null
-                        passenger.network.unloadPassenger(passenger, vec2(0., 0.))
-                    else
-                        passenger.network.unloadPassenger(passenger, passenger.entranceTerminal)
+                        if passenger.entranceTerminal.source == null
+                            passenger.network.unloadPassenger(passenger, vec2(0., 0.))
+                        else
+                            passenger.network.unloadPassenger(passenger, passenger.entranceTerminal)
 
-class RallyFlagMouse
-
-    player owner
-    effect flag
-    timer clock
-    vec2 pos
-    int id
-
-    private static constant flagList = new LinkedList<thistype>
-    private static constant real FPS = 32.
-    private static constant real INTERPOLATION_SPEED = 3
-
-    construct(player owner, int id)
-        this.owner = owner
-        this.id = id
-        this.pos = mousePos[id]
-        if localPlayer == owner
-            this.flag = addEffect(Abilities.aneuTarget, this.pos)
-            //this.flag = addEffect(UI.waypointFlag, this.pos)
-            this.flag.setColorByPlayer(owner)
-        flagList.push(this)
-        if flagList.size() == 1
-            clock = getTimer()
-            clock.startPeriodic(ANIMATION_PERIOD, function update)
-
-    ondestroy
-        if flag != null
-            flag.destr()
-            flag = null
-        flagList.remove(this)
-        if flagList.isEmpty()
-            clock.release()
-
-    static function update()
-        for rally in flagList
-            let mouse = mousePos[rally.id]
-            let pos = rally.pos
-            if rally.flag != null and pos != mouse
-                let delta = pos.distanceTo(mouse) / FPS
-                let ang = pos.angleTo(mouse)
-                let speed = delta * INTERPOLATION_SPEED
-                rally.pos = pos.polarOffset(ang, speed)
-                rally.flag..setPos(rally.pos)..setHeight(rally.pos.getTerrainZ())
-
-
-/** For internal use only, but since it interacts with a separate package this cannot be privated. DO NOT USE THIS.*/
-public class UnitUI
+//================================================================================================================================
+//
+//      NETWORK ICON
+//
+public class NetworkIcon
 
     framehandle icon
-    HealthBar iconBar
-    Page page
-    Visa visa
+    framehandle iconBackdrop
+    framehandle iconPushedBackdrop
+    framehandle iconDisabledBackdrop
+    HealthBar bar
 
-    construct(unit u, Visa _visa)
-        icon = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
-        let iconPath = getAbilityIcon(u.getTypeId())//BlzGetUnitStringField(u, ConvertUnitStringField('uico'))
-        getFrame("MenuItemButtonBackdrop", 0).setTexture(iconPath, 0, false)
-        getFrame("MenuItemButtonPushedBackdrop", 0).setTexture(iconPath, 0, false)
-        var iconPathDis = iconPath.substring(iconPath.indexOf("BTN"))
-        iconPathDis = "ReplaceableTextures\\CommandButtonsDisabled\\DIS" + iconPathDis
-        getFrame("MenuItemButtonDisabledBackdrop", 0).setTexture(iconPathDis, 0, false)
-        icon..setSize(ICON_HEIGHT, ICON_WIDTH)..hide()
+    private trigger clickListener = CreateTrigger()
+    private let unitRefs = new HashMap<int, Passenger>
+    private static constant let localHash = new HashMap<framehandle, thistype>
 
-        let play = _visa.owner
-        let id = play.getId()
-
-        page = null
-        visa = _visa
-        iconBar = new HealthBar(icon, u, play, HEALTH_BAR_H, HEALTH_BAR_W)
-
-        if _visa.manifest == null
-            _visa.manifest = new Book(PAGE_SIZE_MAX)
-        _visa.manifest.addUnitUI(this)
-
-        if focusVisa[id] == _visa
-            if isNetworkVisible[id]
-                play.hideNetwork(_visa)
-            else
-                currentPageNumber[id] = 1
-            play.showNetwork(_visa, currentPageNumber[id])
+    construct(real x, real y)
+        this.icon = createFrame("MenuItemButton", NETWORK_FRAME, 0, 0)
+        this.iconBackdrop = getFrame("MenuItemButtonBackdrop", 0)
+        this.iconPushedBackdrop = getFrame("MenuItemButtonPushedBackdrop", 0)
+        this.iconDisabledBackdrop = getFrame("MenuItemButtonDisabledBackdrop", 0)
+        this.icon..setSize(ICON_HEIGHT, ICON_WIDTH)..setPoint(FRAMEPOINT_TOPLEFT, NETWORK_FRAME, FRAMEPOINT_TOPLEFT, x, y)..hide()
+        this.bar = new HealthBar(this.icon, HEALTH_BAR_H, HEALTH_BAR_W)
+        localHash.put(this.icon, this)
+        this.clickListener.registerFrameEvent(this.icon, FRAMEEVENT_CONTROL_CLICK)
+        this.clickListener.addAction() ->
+            let id = GetTriggerPlayer().getId()
+            if focusTerminal[id] != null
+                let passenger = localHash.get(BlzGetTriggerFrame()).unitRefs.get(id)
+                if passenger != null
+                    if not focusTerminal[id].departureState // only allow unloading via icon-clicking if there is no departure queue
+                        focusTerminal[id].queueDepartureSingle(passenger)
 
     ondestroy
-        let play = visa.owner
-        let id = play.getId()
-        let pageNum = visa.manifest.removeUnitUI(this)
-        icon.remove() // destroys the framehandle
-        destroy iconBar
-        if pageNum < 1
-            destroy visa.manifest
-            visa.manifest = null
-            if focusVisa[id] == visa
-                play.hideNetwork(visa)
-                currentPageNumber[id] = 0
-        else
-            if focusVisa[id] == visa
-                currentPageNumber[id] = page.number 
-                play.hideNetwork(visa)
-                play.showNetwork(visa, pageNum)
+        // really shouldn't be destroying those at all, just hiding/showing.
+
+    function assign(Passenger passenger)
+        if localPlayer == passenger.owner
+            this.iconBackdrop.setTexture(passenger.iconPath, 0, false)
+            this.iconPushedBackdrop.setTexture(passenger.iconPath, 0, false)
+            this.iconDisabledBackdrop.setTexture(passenger.iconPathDis, 0, false)
+            this.icon.show()
+        this.bar.assign(passenger.source)
+        this.unitRefs.put(passenger.owner.getId(), passenger)
+        passenger.netIcon = this
+
+    function unassign(Passenger passenger)
+        this.icon.hide(passenger.owner)
+        this.bar.unassign(passenger.source)
+        this.unitRefs.remove(passenger.owner.getId())
+        passenger.netIcon = null
 
 
-function player.showNetwork(Visa visa, int pageNum)
-    let id = this.getId()
-    isNetworkVisible[id] = true
-    let visaBook = visa.manifest
-    currentPageNumber[id] = pageNum
-    let s = pageNum.toString() + "/" + visaBook.numberOfPages.toString()
-    if localPlayer == this
-        NETWORK_FRAME.show()
-        pageNumDisplay.setText(s)
-    var rowNum = 1 // row ; start at highest row and move down.
-    var colNum = 1 // col
-    for ui in visaBook.getPage(pageNum).items
-        if localPlayer == this
-            ui.icon.setPoint(FRAMEPOINT_TOPLEFT, NETWORK_FRAME, FRAMEPOINT_TOPLEFT, COL[colNum], ROW[rowNum])
-            ui.icon.setEnabled(focusTerminal[id] != null)
-            ui.icon.show()
-        ui.iconBar.list()
-        colNum++
-        if colNum > COLS_PER_PAGE
-            rowNum++
-            colNum = 1
-
+//================================================================================================================================
+//
+//      TOGGLE NETWORK VISIBILITY
+//
+/** This is hide the network for a speicific player and visa */
 function player.hideNetwork(Visa visa)
     let id = this.getId()
     isNetworkVisible[id] = false
     NETWORK_FRAME.hide(this)
     let visaBook = visa.manifest
     if visaBook != null
-        let page = visaBook.pages.get(currentPageNumber[id])
+        let page = visaBook.pages.get(currentPageNumber[id]) // HashMap. Oredered. Index is determined by user.
         if page != null // when clicking the last unit icon on a page, the page gets destroyed.
-            for ui in page.items
-                ui.icon.hide()
-                ui.iconBar.unlist()
+            for i = 1 to PAGE_SIZE_MAX
+                let passenger = page.items.get(i - 1) // LinkedList. Unordered.
+                if passenger != null
+                    networkIcon[i].unassign(passenger)
+
+/** This will hide the network and then repopulate it right after to update all icon locations/visiblities/etc for a speicific player and visa */
+function player.showNetwork(Visa visa, int pageNum)
+    let id = this.getId()
+    isNetworkVisible[id] = true
+    let visaBook = visa.manifest
+    currentPageNumber[id] = pageNum
+    let s = visaBook.isEmpty() ? NO_PAGE_STRING : (pageNum.toString() + "/" + visaBook.numberOfPages.toString())
+    if localPlayer == this
+        NETWORK_FRAME.show()
+        pageNumDisplay.setText(s)
+    if s != NO_PAGE_STRING and pageNum != 0
+        let pageList = visaBook.getPage(pageNum).items
+        for i = 1 to pageList.size()
+            let passenger = pageList.get(i - 1)
+            if passenger != null
+                networkIcon[i].assign(passenger)

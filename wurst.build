@@ -2,7 +2,3 @@
 projectName: TransportNetwork
 dependencies:
 - https://github.com/wurstscript/wurstStdlib2
-buildMapData:
-  name: MyMapName
-  fileName: MyMapFile
-  author: Spellbound

@@ -5,7 +5,7 @@ import ClosureEvents
 public real array mouseX
 public real array mouseY
 public vec2 array mousePos
-//public unit array mouseFocusUnit
+// public unit array mouseFocusUnit
 
 init
     EventListener.add(EVENT_PLAYER_MOUSE_MOVE) ->
@@ -13,4 +13,4 @@ init
         mouseX[id] = BlzGetTriggerPlayerMouseX()
         mouseY[id] = BlzGetTriggerPlayerMouseY()
         mousePos[id] = vec2(mouseX[id], mouseY[id])
-        //mouseFocusUnit[id] = BlzGetMouseFocusUnit()
+        // mouseFocusUnit[id] = BlzGetMouseFocusUnit()
